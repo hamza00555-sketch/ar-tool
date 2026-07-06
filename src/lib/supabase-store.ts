@@ -130,7 +130,7 @@ export class SupabaseStore implements ExperienceStore {
   constructor(private client: SupabaseClient, private bucket: string) {}
 
   static fromConfig(cfg: SupabaseConfig): SupabaseStore {
-    const client = createClient(cfg.url, cfg.secretKey, {
+    const client = createClient(cfg.url, cfg.key, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     return new SupabaseStore(client, cfg.bucket);

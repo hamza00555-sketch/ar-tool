@@ -13,6 +13,14 @@ not connected to Supabase.
 
 ---
 
+> **Already provisioned for this repo.** The Supabase project
+> **marwan-buzzer** (`pkdlbrvalnjybxjsfmzd`) already has the `experiences` and
+> `scans` tables, the `record_scan()` function (locked to the server), and the
+> public `ar-assets` bucket (50 MB limit) — all created and verified against
+> the live database. You only need to do **step 3** (paste the secret key) and,
+> to go public, **step 5** (deploy). Steps 1–2 are for setting up a *fresh*
+> project from scratch.
+
 ## 1. Create the Supabase project
 
 1. Go to <https://supabase.com/dashboard> → **New project** (any name, e.g.
@@ -24,6 +32,9 @@ not connected to Supabase.
 
 Open **SQL Editor** in the Supabase dashboard, paste the contents of
 [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql), and run it.
+(If you use the publishable/anon key instead of the secret key, also run
+[`0002_publishable_key_mode.sql`](supabase/migrations/0002_publishable_key_mode.sql) —
+but note it opens the database to anyone holding that key.)
 
 That single script creates:
 
@@ -44,15 +55,22 @@ That single script creates:
 
 ## 3. Environment variables
 
-Copy `.env.example` to `.env.local` (for local dev) and set the same values
-in Vercel → Project → Settings → Environment Variables:
+A ready-made `.env.local` is already in the repo with the project URL and
+bucket filled in — **just paste your secret key into the empty
+`SUPABASE_SECRET_KEY=` line.** Set the same values in Vercel → Project →
+Settings → Environment Variables.
 
-| Variable | Where to find it | Notes |
+| Variable | Value for this project | Notes |
 |---|---|---|
-| `SUPABASE_URL` | Project Settings → API → Project URL | `https://<ref>.supabase.co` |
-| `SUPABASE_SECRET_KEY` | Project Settings → API keys | The `sb_secret_…` secret key, or the legacy `service_role` JWT. **Server-only — never `NEXT_PUBLIC_`.** |
-| `SUPABASE_STORAGE_BUCKET` | — | `ar-assets` (default; only set if you renamed it) |
-| `NEXT_PUBLIC_APP_URL` | Your deployed domain | e.g. `https://holoform.vercel.app`. QR codes/share links use this. Must be HTTPS. |
+| `SUPABASE_URL` | `https://pkdlbrvalnjybxjsfmzd.supabase.co` | Already set in `.env.local` |
+| `SUPABASE_SECRET_KEY` | Copy from [Project Settings → API Keys](https://supabase.com/dashboard/project/pkdlbrvalnjybxjsfmzd/settings/api-keys) → **service_role** (or a new **Secret key**) | **Server-only — never `NEXT_PUBLIC_`.** The MCP connector can't read this, which is why you paste it yourself. |
+| `SUPABASE_STORAGE_BUCKET` | `ar-assets` | Already set |
+| `NEXT_PUBLIC_APP_URL` | Your deployed domain, e.g. `https://holoform.vercel.app` | QR/share links use this. Must be HTTPS. Leave blank for local dev. |
+
+> **Publishable-key alternative.** If you'd rather use the publishable/anon key
+> (`SUPABASE_PUBLISHABLE_KEY`), the app supports it — but you must run migration
+> `0002`, and it makes the database readable/writable by anyone holding that
+> key. The secret key above is strongly recommended.
 
 ## 4. Run locally
 
