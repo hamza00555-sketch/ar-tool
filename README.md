@@ -15,6 +15,7 @@ for 3D-model AR, and Three.js/WebXR for image, video, and 3D-text AR.
 - **QR codes** for every experience — PNG and SVG download, copy-link.
 - **Analytics** — scans, device / browser / OS breakdowns, recent-scan log, referrer.
 - A **bundled sample 3D model** (`public/samples/aurora-knot.glb`, generated procedurally by `scripts/generate-sample-model.mjs`) so you can test AR before uploading anything.
+- **Arabic / English UI** — a language toggle in the header (and on the public viewer) switches the whole app, including full RTL layout. The choice persists in the browser. Arabic 3D-text experiences render through a canvas-texture path so the script is shaped correctly.
 
 ## Run locally
 
@@ -54,7 +55,8 @@ first run.
 ```
 src/
   lib/
-    types.ts        # Domain types, content-type metadata, template presets
+    types.ts        # Domain types, template preset ids
+    i18n.ts         # EN/AR dictionary, locale store, RTL handling
     store.ts        # ExperienceStore interface + JSON-file implementation
     ua.ts           # User-agent → device/browser/OS for analytics
     api.ts          # Client fetch helpers
@@ -88,3 +90,5 @@ and swap the instance returned by `getStore()` — no UI changes needed.
 - Analytics events are capped at the 500 most recent per experience
   (totals stay accurate).
 - Videos start muted (browser autoplay policy); viewers can unmute in the UI.
+- Arabic 3D text renders as a crisp textured plane (browser text shaping)
+  rather than extruded geometry — the bundled extrusion font is Latin-only.

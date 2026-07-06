@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import type { Experience } from "@/lib/types";
-import { CONTENT_TYPE_META } from "@/lib/types";
 import { trackView, shareUrl } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import TypeIcon from "./TypeIcon";
 import QRPanel from "./QRPanel";
 import ModelViewerClient, {
@@ -38,6 +38,7 @@ const noopSubscribe = () => () => {};
  * clear explanation (plus a QR code on desktop) everywhere else.
  */
 export default function ARViewerShell({ experience }: { experience: Experience }) {
+  const { t, toggleLocale, langName } = useViewerI18n();
   const [started, setStarted] = useState(false);
   const [capability, setCapability] = useState<ARCapability>("checking");
   const [error, setError] = useState<string | null>(null);
@@ -108,10 +109,7 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   if (!hasContent) {
     return (
       <ViewerFrame>
-        <Notice
-          title="This experience has no content yet"
-          body="Its creator hasn’t attached a model, image, video, or text. Check back soon."
-        />
+        <Notice title={t.viewer.noContentTitle} body={t.viewer.noContentBody} />
       </ViewerFrame>
     );
   }
@@ -126,12 +124,26 @@ export default function ARViewerShell({ experience }: { experience: Experience }
             src={experience.content.assetUrl!}
             iosSrc={experience.content.usdzUrl}
             alt={experience.title}
-            onLoadError={setError}
+            onLoadError={() => setError(t.viewer.loadErrorModel)}
           />
         ) : (
-          <PlaneViewer ref={planeRef} experience={experience} onError={setError} />
+          <PlaneViewer
+            ref={planeRef}
+            experience={experience}
+            onError={() => setError(t.viewer.loadErrorContent)}
+          />
         )}
       </div>
+
+      {/* Language toggle — public visitors pick their language here */}
+      {!started && (
+        <button
+          onClick={toggleLocale}
+          className="btn btn-ghost absolute top-4 end-4 z-30 !rounded-full !px-3 !py-1.5 text-xs"
+        >
+          {langName}
+        </button>
+      )}
 
       {/* Start overlay */}
       {!started && (
@@ -139,7 +151,7 @@ export default function ARViewerShell({ experience }: { experience: Experience }
           <div className="animate-rise flex w-full max-w-sm flex-col items-center gap-4">
             <span className="flex items-center gap-2 rounded-full border border-white/12 bg-white/5 px-3 py-1.5 text-xs text-mist-300 backdrop-blur">
               <TypeIcon type={experience.type} className="h-3.5 w-3.5 text-aurora-300" />
-              {CONTENT_TYPE_META[experience.type].label}
+              {t.types[experience.type].label}
             </span>
             <h1 className="text-2xl font-bold">{experience.title}</h1>
             {experience.description && (
@@ -148,11 +160,11 @@ export default function ARViewerShell({ experience }: { experience: Experience }
 
             {capability === "ready" ? (
               <button onClick={onStartAR} className="btn btn-primary w-full !py-3.5 text-base">
-                <ARGlyph /> Start AR
+                <ARGlyph /> {t.viewer.startAR}
               </button>
             ) : (
               <button onClick={onStartAR} className="btn btn-primary w-full !py-3.5 text-base">
-                Open 3D preview
+                {t.viewer.open3D}
               </button>
             )}
 
@@ -160,9 +172,9 @@ export default function ARViewerShell({ experience }: { experience: Experience }
               <div className="w-full rounded-xl border border-ember-400/25 bg-ember-400/8 px-4 py-3 text-xs text-ember-400">
                 {mobile
                   ? ios && isModel && !experience.content.usdzUrl
-                    ? "iPhone/iPad AR needs a USDZ version of this model — showing the 3D preview instead."
-                    : "This browser can’t open full AR — you’ll get the interactive 3D preview."
-                  : "AR works best on a phone. Scan the QR below to open this on mobile."}
+                    ? t.viewer.iosNeedsUsdz
+                    : t.viewer.unsupportedMobile
+                  : t.viewer.desktopHint}
               </div>
             )}
 
@@ -187,14 +199,14 @@ export default function ARViewerShell({ experience }: { experience: Experience }
                 onClick={toggleMute}
                 className="btn btn-ghost pointer-events-auto !rounded-full !px-3 !py-2 text-xs"
               >
-                {muted ? "🔇 Unmute" : "🔊 Mute"}
+                {muted ? t.viewer.unmute : t.viewer.mute}
               </button>
             )}
           </div>
           {capability === "ready" && (
             <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2">
               <button onClick={onStartAR} className="btn btn-primary !rounded-full text-sm">
-                <ARGlyph /> Enter AR
+                <ARGlyph /> {t.viewer.enterAR}
               </button>
             </div>
           )}
@@ -212,15 +224,34 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   );
 }
 
+/** Shown by the server route when the id doesn't exist (client for i18n). */
+export function ViewerNotFound() {
+  const { t } = useI18n();
+  return (
+    <div className="flex h-dvh items-center justify-center p-6">
+      <div className="glass-strong max-w-sm p-8 text-center">
+        <h1 className="text-lg font-bold">{t.viewer.notFoundTitle}</h1>
+        <p className="mt-2 text-sm text-mist-500">{t.viewer.notFoundBody}</p>
+      </div>
+    </div>
+  );
+}
+
+function useViewerI18n() {
+  const { t, toggleLocale } = useI18n();
+  return { t, toggleLocale, langName: t.langName };
+}
+
 function ViewerFrame({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-ink-950">
       {children}
       <Link
         href="/"
-        className="absolute bottom-2 right-3 z-10 text-[0.65rem] text-mist-600 hover:text-mist-300"
+        className="absolute bottom-2 end-3 z-10 text-[0.65rem] text-mist-600 hover:text-mist-300"
       >
-        made with Holoform
+        {t.viewer.madeWith}
       </Link>
     </div>
   );

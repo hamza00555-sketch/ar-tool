@@ -248,6 +248,16 @@ function buildContent(
 
   if (type === "text" && content.text) {
     const style = content.textStyle ?? { color: "#7ef4dc", finish: "metal" as const };
+
+    // The bundled typeface has Latin glyphs only. Arabic (or any non-Latin)
+    // text is rendered through a crisp canvas texture instead, which also
+    // shapes RTL script correctly via the browser's own text engine.
+    const latinOnly = /^[\x20-\x7E\u00A0-\u00FF]*$/.test(content.text);
+    if (!latinOnly) {
+      group.add(canvasTextPlane(content.text, style));
+      return;
+    }
+
     new FontLoader().load(
       FONT_URL,
       (font) => {
@@ -304,6 +314,64 @@ function framedPlane(tex: THREE.Texture, aspect: number): THREE.Group {
 
   g.add(frame, face);
   return g;
+}
+
+/**
+ * Text rendered onto a transparent canvas texture — used for scripts the
+ * bundled 3D font can't shape (e.g. Arabic). The browser handles glyph
+ * shaping, ligatures, and RTL direction.
+ */
+function canvasTextPlane(
+  text: string,
+  style: { color: string; finish: "matte" | "metal" | "neon" }
+): THREE.Mesh {
+  const fontPx = 220;
+  const pad = fontPx * 0.6;
+  const font = `700 ${fontPx}px system-ui, "Segoe UI", "Noto Sans Arabic", sans-serif`;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d")!;
+  ctx.font = font;
+  const textW = Math.ceil(ctx.measureText(text).width);
+  canvas.width = Math.max(2, textW + pad * 2);
+  canvas.height = Math.ceil(fontPx * 1.7);
+
+  // Canvas state resets after resizing — set everything again
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  if (style.finish === "neon") {
+    ctx.shadowColor = style.color;
+    ctx.shadowBlur = fontPx * 0.25;
+  }
+  if (style.finish === "metal") {
+    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grad.addColorStop(0, "#ffffff");
+    grad.addColorStop(0.45, style.color);
+    grad.addColorStop(1, "#606a80");
+    ctx.fillStyle = grad;
+  } else {
+    ctx.fillStyle = style.color;
+  }
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+
+  // ~1 m wide at most, height follows the canvas aspect
+  const aspect = canvas.width / canvas.height;
+  const w = Math.min(1, aspect * 0.35);
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, w / aspect),
+    new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+    })
+  );
+  return mesh;
 }
 
 function textMaterial(

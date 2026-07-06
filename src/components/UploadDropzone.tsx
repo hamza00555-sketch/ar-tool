@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { uploadFile } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 
 const KIND_ACCEPT: Record<string, string> = {
   model: ".glb,.gltf",
@@ -25,6 +26,7 @@ export default function UploadDropzone({
   currentName?: string;
   onUploaded: (file: { url: string; originalName: string }) => void;
 }) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export default function UploadDropzone({
       const allowed = KIND_ACCEPT[kind].split(",");
       const ext = "." + (file.name.split(".").pop() ?? "").toLowerCase();
       if (!allowed.includes(ext)) {
-        setError(`"${ext}" isn’t supported here. Use: ${allowed.join(" ")}`);
+        setError(t.upload.unsupported(ext, allowed.join(" ")));
         return;
       }
       setError(null);
@@ -46,12 +48,12 @@ export default function UploadDropzone({
         const res = await uploadFile(file, kind);
         onUploaded({ url: res.url, originalName: res.originalName });
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Upload failed. Try again.");
+        setError(e instanceof Error ? e.message : t.upload.failed);
       } finally {
         setBusy(false);
       }
     },
-    [kind, onUploaded]
+    [kind, onUploaded, t]
   );
 
   return (
@@ -78,7 +80,7 @@ export default function UploadDropzone({
         {busy ? (
           <>
             <span className="h-8 w-8 animate-spin rounded-full border-2 border-aurora-400 border-t-transparent" />
-            <span className="text-sm text-mist-300">Uploading…</span>
+            <span className="text-sm text-mist-300">{t.upload.uploading}</span>
           </>
         ) : (
           <>
@@ -92,7 +94,9 @@ export default function UploadDropzone({
               {currentName ? (
                 <span className="text-aurora-300">{currentName}</span>
               ) : (
-                <>Drop a file or <span className="text-aurora-300">browse</span></>
+                <>
+                  {t.upload.drop} <span className="text-aurora-300">{t.upload.browse}</span>
+                </>
               )}
             </span>
             <span className="text-xs text-mist-600">{hint}</span>

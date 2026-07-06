@@ -1,6 +1,7 @@
 "use client";
 
 import type { Experience, ExperienceContent, ARContentType } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 import ModelViewerClient from "./viewers/ModelViewerClient";
 import PlaneViewer from "./viewers/PlaneViewer";
 
@@ -17,6 +18,7 @@ export default function LivePreview({
   content: ExperienceContent;
   onError?: (message: string) => void;
 }) {
+  const { t } = useI18n();
   const ready =
     type === "text" ? Boolean(content.text?.trim()) : Boolean(content.assetUrl);
 
@@ -29,9 +31,7 @@ export default function LivePreview({
           </svg>
         </div>
         <p className="max-w-48 text-xs text-mist-600">
-          {type === "text"
-            ? "Type something to see it in 3D"
-            : "Add content to see the live preview"}
+          {type === "text" ? t.wizard.previewEmptyText : t.wizard.previewEmpty}
         </p>
       </div>
     );

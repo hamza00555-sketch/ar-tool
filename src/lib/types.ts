@@ -68,67 +68,22 @@ export interface ExperienceInput {
   content?: ExperienceContent;
 }
 
-export const CONTENT_TYPE_META: Record<
-  ARContentType,
-  { label: string; blurb: string }
-> = {
-  model: { label: "3D Model", blurb: "GLB / glTF object anchored in space" },
-  image: { label: "Image / Poster", blurb: "A floating image plane" },
-  video: { label: "Video", blurb: "A floating video screen" },
-  text: { label: "3D Text", blurb: "Extruded text you can style" },
-};
-
-/** Campaign template presets offered in the creation wizard */
+/**
+ * Campaign template presets offered in the creation wizard.
+ * Display strings (name, tagline, title/description hints) live in the
+ * i18n dictionary under `templates`, keyed by these ids.
+ */
 export interface TemplatePreset {
   id: string;
-  name: string;
-  tagline: string;
   type: ARContentType;
-  titleHint: string;
-  descriptionHint: string;
 }
 
 export const TEMPLATE_PRESETS: TemplatePreset[] = [
-  {
-    id: "packaging",
-    name: "Product Packaging",
-    tagline: "Bring a box or label to life",
-    type: "model",
-    titleHint: "Product reveal",
-    descriptionHint: "Scan the pack to explore the product in 3D.",
-  },
-  {
-    id: "exhibition",
-    name: "Exhibition",
-    tagline: "AR exhibits beside real ones",
-    type: "model",
-    titleHint: "Exhibit companion",
-    descriptionHint: "Point your phone at the stand to see the full story.",
-  },
-  {
-    id: "business-card",
-    name: "Business Card",
-    tagline: "A card that introduces you in AR",
-    type: "text",
-    titleHint: "My AR card",
-    descriptionHint: "Scan to see who I am — in your space.",
-  },
-  {
-    id: "poster",
-    name: "Poster",
-    tagline: "Posters that step off the wall",
-    type: "image",
-    titleHint: "Campaign poster",
-    descriptionHint: "The key visual, floating in the room.",
-  },
-  {
-    id: "training",
-    name: "Training Guide",
-    tagline: "Show a procedure, not a PDF",
-    type: "video",
-    titleHint: "How-to in AR",
-    descriptionHint: "Watch the walkthrough right where you work.",
-  },
+  { id: "packaging", type: "model" },
+  { id: "exhibition", type: "model" },
+  { id: "business-card", type: "text" },
+  { id: "poster", type: "image" },
+  { id: "training", type: "video" },
 ];
 
 /** Bundled sample assets so the flow is testable before any upload */

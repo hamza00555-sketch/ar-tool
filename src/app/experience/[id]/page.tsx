@@ -10,7 +10,8 @@ import QRPanel from "@/components/QRPanel";
 import AnalyticsPanel from "@/components/AnalyticsPanel";
 import LivePreview from "@/components/LivePreview";
 import { deleteExperience, getExperience, shareUrl, updateExperience } from "@/lib/api";
-import { CONTENT_TYPE_META, type ExperienceWithStats } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
+import type { ExperienceWithStats } from "@/lib/types";
 
 /** Manage one experience: edit details, toggle status, QR + share, analytics. */
 export default function ExperienceDetailPage({
@@ -20,6 +21,7 @@ export default function ExperienceDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const { t } = useI18n();
   const justCreated = useSearchParams().get("created") === "1";
 
   const [exp, setExp] = useState<ExperienceWithStats | null>(null);
@@ -52,7 +54,7 @@ export default function ExperienceDetailPage({
       setSavedTick(true);
       setTimeout(() => setSavedTick(false), 1500);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
+      setError(e instanceof Error ? e.message : t.detail.saveFailed);
     } finally {
       setSaving(false);
     }
@@ -60,12 +62,12 @@ export default function ExperienceDetailPage({
 
   const remove = async () => {
     if (!exp) return;
-    if (!window.confirm(`Delete “${exp.title}”? This can’t be undone.`)) return;
+    if (!window.confirm(t.detail.confirmDelete(exp.title))) return;
     try {
       await deleteExperience(exp.id);
       router.push("/");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed");
+      setError(e instanceof Error ? e.message : t.detail.deleteFailed);
     }
   };
 
@@ -73,10 +75,10 @@ export default function ExperienceDetailPage({
     return (
       <AppShell>
         <div className="glass mx-auto max-w-md p-8 text-center">
-          <h1 className="text-lg font-bold">Experience not found</h1>
+          <h1 className="text-lg font-bold">{t.detail.notFound}</h1>
           <p className="mt-2 text-sm text-mist-500">{error}</p>
           <Link href="/" className="btn btn-ghost mt-4">
-            Back to dashboard
+            {t.detail.backToDash}
           </Link>
         </div>
       </AppShell>
@@ -95,7 +97,7 @@ export default function ExperienceDetailPage({
     <AppShell>
       {justCreated && (
         <div className="animate-rise mb-6 rounded-xl border border-aurora-500/30 bg-aurora-500/10 px-4 py-3 text-sm text-aurora-300">
-          ✦ Experience created — scan the QR code below with your phone to test it.
+          {t.detail.createdBanner}
         </div>
       )}
 
@@ -105,22 +107,24 @@ export default function ExperienceDetailPage({
             <StatusBadge status={exp.status} />
             <span className="flex items-center gap-1.5 text-xs text-mist-500">
               <TypeIcon type={exp.type} className="h-3.5 w-3.5" />
-              {CONTENT_TYPE_META[exp.type].label}
+              {t.types[exp.type].label}
             </span>
-            <span className="font-mono text-xs text-mist-600">/ar/{exp.id}</span>
+            <span className="font-mono text-xs text-mist-600" dir="ltr">
+              /ar/{exp.id}
+            </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{exp.title}</h1>
         </div>
         <div className="flex gap-2">
           <a href={`/ar/${exp.id}`} target="_blank" rel="noreferrer" className="btn btn-ghost">
-            Open viewer ↗
+            {t.detail.openViewer}
           </a>
           <button
             onClick={() => save({ status: exp.status === "published" ? "draft" : "published" })}
             disabled={saving}
             className={`btn ${exp.status === "published" ? "btn-ghost" : "btn-primary"}`}
           >
-            {exp.status === "published" ? "Unpublish" : "Publish"}
+            {exp.status === "published" ? t.detail.unpublish : t.detail.publish}
           </button>
         </div>
       </div>
@@ -130,11 +134,11 @@ export default function ExperienceDetailPage({
           {/* Edit details */}
           <section className="glass p-5 sm:p-6">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-mist-500">
-              Details
+              {t.detail.details}
             </h2>
             <div className="flex flex-col gap-4">
               <div>
-                <span className="label">Title</span>
+                <span className="label">{t.wizard.titleLabel}</span>
                 <input
                   className="field"
                   value={title}
@@ -143,7 +147,7 @@ export default function ExperienceDetailPage({
                 />
               </div>
               <div>
-                <span className="label">Description</span>
+                <span className="label">{t.wizard.descLabel}</span>
                 <textarea
                   className="field min-h-20 resize-y"
                   value={description}
@@ -157,7 +161,7 @@ export default function ExperienceDetailPage({
                   disabled={!dirty || saving}
                   className="btn btn-primary"
                 >
-                  {saving ? "Saving…" : savedTick ? "Saved ✓" : "Save changes"}
+                  {saving ? t.detail.saving : savedTick ? t.detail.saved : t.detail.save}
                 </button>
                 {error && <span className="text-sm text-danger-400">{error}</span>}
               </div>
@@ -168,7 +172,7 @@ export default function ExperienceDetailPage({
           <section className="glass overflow-hidden">
             <div className="flex items-center justify-between px-5 pt-5 sm:px-6">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-mist-500">
-                Preview
+                {t.detail.preview}
               </h2>
               <span className="text-xs text-mist-600">
                 {exp.content.assetName ?? (exp.type === "text" ? `“${exp.content.text}”` : "")}
@@ -182,14 +186,14 @@ export default function ExperienceDetailPage({
           {/* Analytics */}
           <section className="glass p-5 sm:p-6">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-mist-500">
-              Analytics
+              {t.detail.analytics}
             </h2>
             <AnalyticsPanel analytics={exp.analytics} />
           </section>
 
           <section className="flex justify-end">
             <button onClick={remove} className="btn btn-danger text-xs">
-              Delete experience
+              {t.detail.deleteExp}
             </button>
           </section>
         </div>
@@ -198,24 +202,22 @@ export default function ExperienceDetailPage({
         <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
           <div className="glass-strong p-6">
             <h2 className="mb-1 text-center text-sm font-semibold uppercase tracking-wider text-mist-500">
-              Test on phone
+              {t.detail.testOnPhone}
             </h2>
-            <p className="mb-4 text-center text-xs text-mist-600">
-              Scan with your phone camera to open the AR viewer.
-            </p>
+            <p className="mb-4 text-center text-xs text-mist-600">{t.detail.scanHint}</p>
             <QRPanel url={url} />
           </div>
           {exp.status === "draft" && (
             <p className="rounded-xl border border-ember-400/25 bg-ember-400/8 px-4 py-3 text-xs text-ember-400">
-              This experience is a draft — the link works for testing, but consider
-              publishing before sharing the QR publicly.
+              {t.detail.draftNote}
             </p>
           )}
           <p className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 text-xs text-mist-600">
-            Phones must be able to reach this address. When running locally, open
-            the studio via your computer’s network IP (e.g.{" "}
-            <span className="font-mono">http://192.168.x.x:3000</span>) so the QR
-            works on your phone.
+            {t.detail.networkNote}{" "}
+            <span className="font-mono" dir="ltr">
+              http://192.168.x.x:3000
+            </span>
+            {t.detail.networkNoteEnd}
           </p>
         </aside>
       </div>

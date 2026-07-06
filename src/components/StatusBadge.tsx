@@ -1,6 +1,10 @@
+"use client";
+
 import type { ExperienceStatus } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 export default function StatusBadge({ status }: { status: ExperienceStatus }) {
+  const { t } = useI18n();
   const published = status === "published";
   return (
     <span
@@ -15,7 +19,7 @@ export default function StatusBadge({ status }: { status: ExperienceStatus }) {
           published ? "bg-aurora-400 animate-pulse-soft" : "bg-mist-600"
         }`}
       />
-      {published ? "Live" : "Draft"}
+      {published ? t.status.live : t.status.draft}
     </span>
   );
 }

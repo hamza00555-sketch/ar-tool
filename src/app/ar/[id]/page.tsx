@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ARViewerShell from "@/components/ARViewerShell";
+import ARViewerShell, { ViewerNotFound } from "@/components/ARViewerShell";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -21,16 +21,7 @@ export default async function ARPage({ params }: Props) {
   const exp = await getStore().get(id);
 
   if (!exp) {
-    return (
-      <div className="flex h-dvh items-center justify-center p-6">
-        <div className="glass-strong max-w-sm p-8 text-center">
-          <h1 className="text-lg font-bold">Experience not found</h1>
-          <p className="mt-2 text-sm text-mist-500">
-            This AR link doesn’t exist anymore — it may have been deleted by its creator.
-          </p>
-        </div>
-      </div>
-    );
+    return <ViewerNotFound />;
   }
 
   // Strip analytics before shipping to the client — viewers don't need it

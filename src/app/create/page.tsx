@@ -7,8 +7,8 @@ import TypeIcon from "@/components/TypeIcon";
 import UploadDropzone from "@/components/UploadDropzone";
 import LivePreview from "@/components/LivePreview";
 import { createExperience } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import {
-  CONTENT_TYPE_META,
   SAMPLE_MODEL_NAME,
   SAMPLE_MODEL_URL,
   TEMPLATE_PRESETS,
@@ -17,18 +17,14 @@ import {
   type TextStyle,
 } from "@/lib/types";
 
-const STEPS = ["Type", "Content", "Publish"] as const;
-
+const CONTENT_TYPES: ARContentType[] = ["model", "image", "video", "text"];
 const TEXT_COLORS = ["#7ef4dc", "#a48bfa", "#ffb26b", "#f2f5fb", "#ff7d94"];
-const TEXT_FINISHES: { id: TextStyle["finish"]; label: string }[] = [
-  { id: "metal", label: "Metal" },
-  { id: "matte", label: "Matte" },
-  { id: "neon", label: "Neon" },
-];
+const TEXT_FINISHES: TextStyle["finish"][] = ["metal", "matte", "neon"];
 
 /** Three-step creation wizard with a live 3D preview from step 2 onward. */
 export default function CreatePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
   const [type, setType] = useState<ARContentType | null>(null);
   const [content, setContent] = useState<ExperienceContent>({});
@@ -53,13 +49,13 @@ export default function CreatePage() {
     const preset = TEMPLATE_PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
     setType(preset.type);
-    setTitle(preset.titleHint);
-    setDescription(preset.descriptionHint);
+    setTitle(t.templates[preset.id].titleHint);
+    setDescription(t.templates[preset.id].descriptionHint);
     setStep(1);
   };
 
-  const pickType = (t: ARContentType) => {
-    setType(t);
+  const pickType = (picked: ARContentType) => {
+    setType(picked);
     setContent({});
     setPreviewError(null);
     setStep(1);
@@ -71,7 +67,7 @@ export default function CreatePage() {
     setError(null);
     try {
       const exp = await createExperience({
-        title: title || CONTENT_TYPE_META[type].label,
+        title: title || t.types[type].label,
         description,
         type,
         status: publishNow ? "published" : "draft",
@@ -80,7 +76,7 @@ export default function CreatePage() {
       });
       router.push(`/experience/${exp.id}?created=1`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save the experience.");
+      setError(e instanceof Error ? e.message : t.wizard.saveFailed);
       setSaving(false);
     }
   };
@@ -89,7 +85,7 @@ export default function CreatePage() {
     <AppShell>
       {/* Step indicator */}
       <div className="animate-rise mb-8 flex items-center gap-1.5">
-        {STEPS.map((s, i) => (
+        {t.wizard.steps.map((s, i) => (
           <button
             key={s}
             disabled={i > step || (i > 0 && !type)}
@@ -111,24 +107,20 @@ export default function CreatePage() {
       {step === 0 && (
         <div className="animate-rise flex flex-col gap-10">
           <section>
-            <h1 className="mb-1 text-2xl font-bold tracking-tight">
-              What should appear in AR?
-            </h1>
-            <p className="mb-6 text-sm text-mist-500">
-              Pick a content type — you can add the actual content in the next step.
-            </p>
+            <h1 className="mb-1 text-2xl font-bold tracking-tight">{t.wizard.typeTitle}</h1>
+            <p className="mb-6 text-sm text-mist-500">{t.wizard.typeSub}</p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {(Object.keys(CONTENT_TYPE_META) as ARContentType[]).map((t) => (
+              {CONTENT_TYPES.map((ct) => (
                 <button
-                  key={t}
-                  onClick={() => pickType(t)}
+                  key={ct}
+                  onClick={() => pickType(ct)}
                   className="glass card-hover flex flex-col items-start gap-3 p-5 text-start"
                 >
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-aurora-400/15 to-iris-500/15 text-aurora-300">
-                    <TypeIcon type={t} className="h-5.5 w-5.5" />
+                    <TypeIcon type={ct} className="h-5.5 w-5.5" />
                   </span>
-                  <span className="font-semibold">{CONTENT_TYPE_META[t].label}</span>
-                  <span className="text-xs text-mist-500">{CONTENT_TYPE_META[t].blurb}</span>
+                  <span className="font-semibold">{t.types[ct].label}</span>
+                  <span className="text-xs text-mist-500">{t.types[ct].blurb}</span>
                 </button>
               ))}
             </div>
@@ -136,7 +128,7 @@ export default function CreatePage() {
 
           <section>
             <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-mist-500">
-              Or start from a template
+              {t.wizard.orTemplate}
             </h2>
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               {TEMPLATE_PRESETS.map((p) => (
@@ -145,11 +137,11 @@ export default function CreatePage() {
                   onClick={() => applyTemplate(p.id)}
                   className="glass card-hover flex flex-col gap-1.5 p-4 text-start"
                 >
-                  <span className="text-sm font-semibold">{p.name}</span>
-                  <span className="text-xs text-mist-500">{p.tagline}</span>
+                  <span className="text-sm font-semibold">{t.templates[p.id].name}</span>
+                  <span className="text-xs text-mist-500">{t.templates[p.id].tagline}</span>
                   <span className="mt-1 flex items-center gap-1.5 text-[0.7rem] text-aurora-300">
                     <TypeIcon type={p.type} className="h-3 w-3" />
-                    {CONTENT_TYPE_META[p.type].label}
+                    {t.types[p.type].label}
                   </span>
                 </button>
               ))}
@@ -164,18 +156,16 @@ export default function CreatePage() {
           <div className="flex flex-col gap-6">
             <div>
               <h1 className="mb-1 text-2xl font-bold tracking-tight">
-                Add your {CONTENT_TYPE_META[type].label.toLowerCase()}
+                {t.wizard.contentTitle(t.types[type].label)}
               </h1>
-              <p className="text-sm text-mist-500">
-                The live preview updates as soon as content is ready.
-              </p>
+              <p className="text-sm text-mist-500">{t.wizard.contentSub}</p>
             </div>
 
             {type === "model" && (
               <div className="flex flex-col gap-4">
                 <UploadDropzone
                   kind="model"
-                  hint=".glb or .gltf, up to 60 MB"
+                  hint={t.wizard.modelHint}
                   currentName={content.assetName}
                   onUploaded={(f) =>
                     setContent((c) => ({ ...c, assetUrl: f.url, assetName: f.originalName }))
@@ -191,14 +181,14 @@ export default function CreatePage() {
                   }
                   className="btn btn-ghost self-start text-xs"
                 >
-                  ✦ Use the bundled sample model
+                  {t.wizard.useSample}
                 </button>
                 <div>
-                  <span className="label">iOS Quick Look (optional)</span>
+                  <span className="label">{t.wizard.iosLabel}</span>
                   <UploadDropzone
                     kind="usdz"
-                    hint=".usdz — enables native AR on iPhone/iPad"
-                    currentName={content.usdzUrl ? "USDZ attached" : undefined}
+                    hint={t.wizard.usdzHint}
+                    currentName={content.usdzUrl ? t.wizard.usdzAttached : undefined}
                     onUploaded={(f) => setContent((c) => ({ ...c, usdzUrl: f.url }))}
                   />
                 </div>
@@ -208,7 +198,7 @@ export default function CreatePage() {
             {type === "image" && (
               <UploadDropzone
                 kind="image"
-                hint=".png .jpg .webp .gif, up to 60 MB"
+                hint={t.wizard.imageHint}
                 currentName={content.assetName}
                 onUploaded={(f) =>
                   setContent((c) => ({ ...c, assetUrl: f.url, assetName: f.originalName }))
@@ -220,17 +210,18 @@ export default function CreatePage() {
               <div className="flex flex-col gap-4">
                 <UploadDropzone
                   kind="video"
-                  hint=".mp4 .webm .mov, up to 60 MB"
+                  hint={t.wizard.videoHint}
                   currentName={content.assetName}
                   onUploaded={(f) =>
                     setContent((c) => ({ ...c, assetUrl: f.url, assetName: f.originalName }))
                   }
                 />
                 <div>
-                  <span className="label">…or link a hosted video</span>
+                  <span className="label">{t.wizard.orLinkVideo}</span>
                   <div className="flex gap-2">
                     <input
                       className="field"
+                      dir="ltr"
                       placeholder="https://example.com/video.mp4"
                       value={videoUrlDraft}
                       onChange={(e) => setVideoUrlDraft(e.target.value)}
@@ -242,16 +233,14 @@ export default function CreatePage() {
                         setContent((c) => ({
                           ...c,
                           assetUrl: videoUrlDraft,
-                          assetName: "linked video",
+                          assetName: t.wizard.linkedVideo,
                         }))
                       }
                     >
-                      Use
+                      {t.wizard.useLink}
                     </button>
                   </div>
-                  <p className="mt-1.5 text-xs text-mist-600">
-                    Direct .mp4/.webm links work best (the host must allow cross-origin access).
-                  </p>
+                  <p className="mt-1.5 text-xs text-mist-600">{t.wizard.linkHint}</p>
                 </div>
               </div>
             )}
@@ -259,17 +248,17 @@ export default function CreatePage() {
             {type === "text" && (
               <div className="flex flex-col gap-4">
                 <div>
-                  <span className="label">Your text</span>
+                  <span className="label">{t.wizard.yourText}</span>
                   <input
                     className="field text-lg"
                     maxLength={40}
-                    placeholder="HELLO WORLD"
+                    placeholder={t.wizard.textPlaceholder}
                     value={content.text ?? ""}
                     onChange={(e) => setContent((c) => ({ ...c, text: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <span className="label">Color</span>
+                  <span className="label">{t.wizard.color}</span>
                   <div className="flex gap-2">
                     {TEXT_COLORS.map((c) => (
                       <button
@@ -284,28 +273,28 @@ export default function CreatePage() {
                           textStyle.color === c ? "border-white" : "border-transparent"
                         }`}
                         style={{ backgroundColor: c }}
-                        aria-label={`Color ${c}`}
+                        aria-label={c}
                       />
                     ))}
                   </div>
                 </div>
                 <div>
-                  <span className="label">Finish</span>
+                  <span className="label">{t.wizard.finish}</span>
                   <div className="flex gap-2">
                     {TEXT_FINISHES.map((f) => (
                       <button
-                        key={f.id}
+                        key={f}
                         onClick={() =>
                           setContent((prev) => ({
                             ...prev,
-                            textStyle: { ...textStyle, finish: f.id },
+                            textStyle: { ...textStyle, finish: f },
                           }))
                         }
                         className={`btn text-xs ${
-                          textStyle.finish === f.id ? "btn-primary" : "btn-ghost"
+                          textStyle.finish === f ? "btn-primary" : "btn-ghost"
                         }`}
                       >
-                        {f.label}
+                        {t.wizard.finishes[f]}
                       </button>
                     ))}
                   </div>
@@ -315,19 +304,17 @@ export default function CreatePage() {
 
             <div className="mt-2 flex items-center gap-3">
               <button onClick={() => setStep(0)} className="btn btn-ghost">
-                Back
+                {t.wizard.back}
               </button>
               <button
                 onClick={() => setStep(2)}
                 disabled={!contentReady}
                 className="btn btn-primary"
               >
-                Continue
+                {t.wizard.continue}
               </button>
               {!contentReady && (
-                <span className="text-xs text-mist-600">
-                  Add content to continue
-                </span>
+                <span className="text-xs text-mist-600">{t.wizard.addToContinue}</span>
               )}
             </div>
           </div>
@@ -336,7 +323,7 @@ export default function CreatePage() {
             <LivePreview
               type={type}
               content={type === "text" ? { ...content, textStyle } : content}
-              onError={setPreviewError}
+              onError={() => setPreviewError(t.viewer.loadErrorContent)}
             />
           </PreviewPanel>
         </div>
@@ -346,33 +333,33 @@ export default function CreatePage() {
       {step === 2 && type && (
         <div className="animate-rise grid gap-6 lg:grid-cols-[1fr_24rem]">
           <div className="flex max-w-xl flex-col gap-5">
-            <h1 className="text-2xl font-bold tracking-tight">Details & publish</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t.wizard.publishTitle}</h1>
             <div>
-              <span className="label">Title</span>
+              <span className="label">{t.wizard.titleLabel}</span>
               <input
                 className="field"
-                placeholder="e.g. Spring launch — hero product"
+                placeholder={t.wizard.titlePlaceholder}
                 value={title}
                 maxLength={80}
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
             <div>
-              <span className="label">Description</span>
+              <span className="label">{t.wizard.descLabel}</span>
               <textarea
                 className="field min-h-24 resize-y"
-                placeholder="Shown to viewers on the AR start screen."
+                placeholder={t.wizard.descPlaceholder}
                 value={description}
                 maxLength={280}
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
             <div>
-              <span className="label">Thumbnail (optional)</span>
+              <span className="label">{t.wizard.thumbLabel}</span>
               <UploadDropzone
                 kind="image"
-                hint="Shown on the dashboard card"
-                currentName={thumbnail ? "Thumbnail set" : undefined}
+                hint={t.wizard.thumbHint}
+                currentName={thumbnail ? t.wizard.thumbSet : undefined}
                 onUploaded={(f) => setThumbnail(f.url)}
               />
             </div>
@@ -384,8 +371,8 @@ export default function CreatePage() {
                 className="h-4 w-4 accent-teal-400"
               />
               <span className="text-sm">
-                <span className="font-semibold">Publish immediately</span>{" "}
-                <span className="text-mist-500">— the QR code goes live right away</span>
+                <span className="font-semibold">{t.wizard.publishNow}</span>{" "}
+                <span className="text-mist-500">{t.wizard.publishNote}</span>
               </span>
             </label>
 
@@ -397,10 +384,10 @@ export default function CreatePage() {
 
             <div className="flex items-center gap-3">
               <button onClick={() => setStep(1)} className="btn btn-ghost">
-                Back
+                {t.wizard.back}
               </button>
               <button onClick={submit} disabled={saving} className="btn btn-primary">
-                {saving ? "Creating…" : "Create experience"}
+                {saving ? t.wizard.creating : t.wizard.create}
               </button>
             </div>
           </div>
@@ -409,7 +396,7 @@ export default function CreatePage() {
             <LivePreview
               type={type}
               content={type === "text" ? { ...content, textStyle } : content}
-              onError={setPreviewError}
+              onError={() => setPreviewError(t.viewer.loadErrorContent)}
             />
           </PreviewPanel>
         </div>
@@ -425,9 +412,10 @@ function PreviewPanel({
   children: React.ReactNode;
   error: string | null;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col gap-2">
-      <span className="label !mb-0">Live preview</span>
+      <span className="label !mb-0">{t.wizard.livePreview}</span>
       <div className="glass relative h-80 overflow-hidden lg:h-[26rem]">
         {children}
         {error && (
@@ -436,9 +424,7 @@ function PreviewPanel({
           </div>
         )}
       </div>
-      <p className="text-xs text-mist-600">
-        Drag to orbit · pinch or scroll to zoom
-      </p>
+      <p className="text-xs text-mist-600">{t.wizard.orbitHint}</p>
     </div>
   );
 }

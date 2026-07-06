@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import QRCode from "qrcode";
+import { useI18n } from "@/lib/i18n";
 
 // The share URL depends on window.location.origin, so its text may only be
 // rendered after hydration — this flag flips to true on the client.
@@ -20,6 +21,7 @@ export default function QRPanel({
   url: string;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const [png, setPng] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const mounted = useMounted();
@@ -64,7 +66,7 @@ export default function QRPanel({
       setTimeout(() => setCopied(false), 1600);
     } catch {
       // Clipboard can be unavailable (http on LAN) — show the URL for manual copy
-      window.prompt("Copy the AR link:", url);
+      window.prompt(t.qr.copyPrompt, url);
     }
   };
 
@@ -82,7 +84,7 @@ export default function QRPanel({
           <div className={`animate-pulse rounded-lg bg-mist-300 ${compact ? "h-36 w-36" : "h-48 w-48 sm:h-56 sm:w-56"}`} />
         )}
       </div>
-      <p className="max-w-full truncate font-mono text-xs text-mist-500" title={url}>
+      <p className="max-w-full truncate font-mono text-xs text-mist-500" title={url} dir="ltr">
         {mounted ? url : "…"}
       </p>
       <div className="flex flex-wrap justify-center gap-2">
@@ -93,7 +95,7 @@ export default function QRPanel({
           SVG
         </button>
         <button onClick={copyLink} className="btn btn-primary !px-3.5 !py-2 text-xs">
-          {copied ? "Copied ✓" : "Copy link"}
+          {copied ? t.qr.copied : t.qr.copyLink}
         </button>
       </div>
     </div>

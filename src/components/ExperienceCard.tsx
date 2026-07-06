@@ -1,20 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import type { ExperienceWithStats } from "@/lib/types";
-import { CONTENT_TYPE_META } from "@/lib/types";
+import { timeAgo, useI18n } from "@/lib/i18n";
 import StatusBadge from "./StatusBadge";
 import TypeIcon from "./TypeIcon";
 
-function timeAgo(iso: string | null): string {
-  if (!iso) return "never";
-  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
-}
-
 /** Campaign card: thumbnail, status, scan count, last viewed. */
 export default function ExperienceCard({ exp }: { exp: ExperienceWithStats }) {
+  const { t } = useI18n();
   return (
     <Link
       href={`/experience/${exp.id}`}
@@ -36,7 +30,7 @@ export default function ExperienceCard({ exp }: { exp: ExperienceWithStats }) {
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-center gap-2 text-xs text-mist-500">
           <TypeIcon type={exp.type} className="h-3.5 w-3.5" />
-          {CONTENT_TYPE_META[exp.type].label}
+          {t.types[exp.type].label}
         </div>
         <h3 className="line-clamp-1 font-semibold">{exp.title}</h3>
         {exp.description && (
@@ -51,9 +45,9 @@ export default function ExperienceCard({ exp }: { exp: ExperienceWithStats }) {
             <span className="font-mono font-semibold text-mist-300">
               {exp.analytics.totalViews}
             </span>
-            scans
+            {t.card.scans}
           </span>
-          <span>viewed {timeAgo(exp.analytics.lastViewedAt)}</span>
+          <span>{t.card.viewed(timeAgo(t, exp.analytics.lastViewedAt))}</span>
         </div>
       </div>
     </Link>
