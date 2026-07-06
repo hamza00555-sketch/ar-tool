@@ -81,6 +81,11 @@ begin
 end;
 $$;
 
+-- Only the server (service role) may record scans — block direct RPC access
+-- so the anon key can't be used to spam fake analytics.
+revoke execute on function public.record_scan(text, text, text, text, text, text)
+  from public, anon, authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Storage: public bucket for AR assets (GLB/USDZ/images/videos).
 -- Public = files get a stable public *download* URL; uploads still require
