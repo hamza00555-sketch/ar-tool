@@ -46,6 +46,8 @@ export interface ViewEvent {
   browser: string;
   os: string;
   referrer: string;
+  /** Raw user agent — stored for analytics, not shown in the UI */
+  userAgent?: string;
 }
 
 export interface ExperienceAnalytics {

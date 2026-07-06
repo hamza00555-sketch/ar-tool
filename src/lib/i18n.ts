@@ -109,6 +109,9 @@ const en = {
     emptyBody:
       "Create your first AR experience — pick a content type, add your asset, and you’ll get a QR code that opens it in the browser.",
     emptyCta: "Create your first experience",
+    localModeTitle: "Local dev mode",
+    localModeBody:
+      "Data and uploads are stored on this machine only and won’t survive serverless deployment. Connect Supabase for production — see SETUP.md.",
   },
   card: {
     scans: "scans",
@@ -193,6 +196,8 @@ const en = {
     networkNote:
       "Phones must be able to reach this address. When running locally, open the studio via your computer’s network IP (e.g.",
     networkNoteEnd: ") so the QR works on your phone.",
+    localhostWarning:
+      "This QR points to localhost — another phone cannot open it, and camera/AR requires HTTPS. Deploy the app (e.g. Vercel) or use a tunnel, and set NEXT_PUBLIC_APP_URL to the public domain.",
     notFound: "Experience not found",
     backToDash: "Back to dashboard",
   },
@@ -294,6 +299,9 @@ const ar: Dict = {
     emptyBody:
       "أنشئ أول تجربة واقع معزّز — اختر نوع المحتوى وأضف ملفك، وستحصل على رمز QR يفتحها في المتصفح.",
     emptyCta: "أنشئ تجربتك الأولى",
+    localModeTitle: "وضع التطوير المحلي",
+    localModeBody:
+      "البيانات والملفات تُحفظ على هذا الجهاز فقط ولن تبقى عند النشر السحابي. اربط Supabase للإنتاج — راجع SETUP.md.",
   },
   card: {
     scans: "مسحة",
@@ -377,6 +385,8 @@ const ar: Dict = {
     networkNote:
       "يجب أن تصل الهواتف إلى هذا العنوان. عند التشغيل محلياً، افتح الاستوديو عبر عنوان IP لجهازك على الشبكة (مثل",
     networkNoteEnd: ") ليعمل الرمز على هاتفك.",
+    localhostWarning:
+      "رمز QR هذا يشير إلى localhost — لا يمكن لهاتف آخر فتحه، والكاميرا/الواقع المعزّز يتطلبان HTTPS. انشر التطبيق (مثلاً على Vercel) أو استخدم نفقاً، وعيّن NEXT_PUBLIC_APP_URL على النطاق العام.",
     notFound: "التجربة غير موجودة",
     backToDash: "العودة إلى اللوحة",
   },

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "@/components/AppShell";
@@ -9,9 +9,17 @@ import TypeIcon from "@/components/TypeIcon";
 import QRPanel from "@/components/QRPanel";
 import AnalyticsPanel from "@/components/AnalyticsPanel";
 import LivePreview from "@/components/LivePreview";
-import { deleteExperience, getExperience, shareUrl, updateExperience } from "@/lib/api";
+import {
+  deleteExperience,
+  getExperience,
+  isLocalShareUrl,
+  shareUrl,
+  updateExperience,
+} from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import type { ExperienceWithStats } from "@/lib/types";
+
+const noopSubscribe = () => () => {};
 
 /** Manage one experience: edit details, toggle status, QR + share, analytics. */
 export default function ExperienceDetailPage({
@@ -42,6 +50,9 @@ export default function ExperienceDetailPage({
   }, [id]);
 
   const url = useMemo(() => shareUrl(id), [id]);
+  // Evaluated after hydration only (url depends on window.location in dev)
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const localUrl = mounted && isLocalShareUrl(shareUrl(id));
   const dirty = exp ? title !== exp.title || description !== exp.description : false;
 
   const save = async (patch: Parameters<typeof updateExperience>[1]) => {
@@ -210,6 +221,11 @@ export default function ExperienceDetailPage({
           {exp.status === "draft" && (
             <p className="rounded-xl border border-ember-400/25 bg-ember-400/8 px-4 py-3 text-xs text-ember-400">
               {t.detail.draftNote}
+            </p>
+          )}
+          {localUrl && (
+            <p className="rounded-xl border border-danger-400/30 bg-danger-400/8 px-4 py-3 text-xs text-danger-400">
+              {t.detail.localhostWarning}
             </p>
           )}
           <p className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 text-xs text-mist-600">

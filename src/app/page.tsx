@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import ExperienceCard from "@/components/ExperienceCard";
-import { listExperiences } from "@/lib/api";
+import { getStorageMode, listExperiences } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import type { ExperienceWithStats } from "@/lib/types";
 
@@ -13,11 +13,13 @@ export default function DashboardPage() {
   const { t } = useI18n();
   const [experiences, setExperiences] = useState<ExperienceWithStats[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [storage, setStorage] = useState<"supabase" | "local" | null>(null);
 
   useEffect(() => {
     listExperiences()
       .then(setExperiences)
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
+    getStorageMode().then(setStorage);
   }, []);
 
   const totalScans = experiences?.reduce((n, e) => n + e.analytics.totalViews, 0) ?? 0;
@@ -25,6 +27,14 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
+      {storage === "local" && (
+        <div className="animate-rise mb-6 flex items-start gap-3 rounded-xl border border-ember-400/25 bg-ember-400/8 px-4 py-3 text-xs text-ember-400">
+          <span className="mt-0.5 font-bold uppercase tracking-wider">
+            {t.dashboard.localModeTitle}
+          </span>
+          <span className="text-ember-400/90">{t.dashboard.localModeBody}</span>
+        </div>
+      )}
       <section className="animate-rise mb-10">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-aurora-300">
           {t.dashboard.kicker}

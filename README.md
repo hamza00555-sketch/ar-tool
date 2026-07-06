@@ -73,17 +73,24 @@ src/
     QRPanel.tsx, UploadDropzone.tsx, AnalyticsPanel.tsx, ...
 ```
 
-**Persistence** is a JSON file (`data/db.json`) behind the `ExperienceStore`
-interface; uploads land in `data/uploads/` and are served via `/api/files/*`.
-To move to Supabase (or any backend), implement `ExperienceStore` against it
-and swap the instance returned by `getStore()` — no UI changes needed.
+**Persistence** has two modes behind one `ExperienceStore` interface
+(`src/lib/store.ts`):
+
+- **Supabase mode (production)** — set `SUPABASE_URL` + `SUPABASE_SECRET_KEY`
+  and the app uses Postgres (`experiences`, `scans` tables) with uploads going
+  **directly from the browser to Supabase Storage** via signed URLs (so
+  serverless body-size limits never apply). Schema: `supabase/migrations/`.
+- **Local mode (development)** — no env vars → JSON file + `data/uploads/`
+  on this machine. The dashboard shows a "Local dev mode" banner.
+
+**See [SETUP.md](SETUP.md) for the full production setup** (Supabase project,
+migration SQL, environment variables, Vercel deployment, phone testing).
 
 ## Limitations (MVP)
 
-- Single-user, no auth — anyone who can reach the server can edit.
-- File-backed storage: works on a single server / local machine; serverless
-  platforms with read-only or ephemeral filesystems need the Supabase-style
-  store swap first.
+- Single-user, no auth — anyone who can reach the dashboard can edit.
+  (RLS keeps browser keys away from the DB; add Supabase Auth before
+  sharing the dashboard publicly.)
 - No GLB→USDZ conversion — upload a USDZ manually for iOS native AR on model
   experiences; other types fall back to 3D preview on iOS.
 - WebXR plane content floats ~1.3 m in front of you (no tap-to-place yet).

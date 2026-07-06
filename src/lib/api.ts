@@ -57,11 +57,51 @@ export async function uploadFile(
   file: File,
   kind: "model" | "usdz" | "image" | "video"
 ): Promise<{ url: string; originalName: string; size: number }> {
+  // Step 1 — ask the server how to upload (validates name/size/kind too)
+  const signRes = await fetch("/api/upload/sign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: file.name, size: file.size, kind }),
+  });
+  const sign = await handle<
+    | { mode: "local" }
+    | { mode: "supabase"; uploadUrl: string; publicUrl: string; contentType: string }
+  >(signRes);
+
+  // Step 2a — Supabase: PUT the file straight to Storage. It never touches
+  // our server, so serverless body-size limits don't apply.
+  if (sign.mode === "supabase") {
+    const put = await fetch(sign.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": sign.contentType, "x-upsert": "false" },
+      body: file,
+    });
+    if (!put.ok) {
+      const detail = await put.text().catch(() => "");
+      throw new Error(
+        `Storage upload failed (HTTP ${put.status})${detail ? `: ${detail.slice(0, 200)}` : ""}`
+      );
+    }
+    return { url: sign.publicUrl, originalName: file.name, size: file.size };
+  }
+
+  // Step 2b — local dev: multipart to this server, saved under data/uploads
   const form = new FormData();
   form.append("file", file);
   form.append("kind", kind);
   const res = await fetch("/api/upload", { method: "POST", body: form });
   return handle(res);
+}
+
+/** Storage mode reported by the server ("supabase" in production, "local" in dev). */
+export async function getStorageMode(): Promise<"supabase" | "local"> {
+  try {
+    const res = await fetch("/api/health", { cache: "no-store" });
+    const data = (await res.json()) as { storage?: "supabase" | "local" };
+    return data.storage ?? "local";
+  } catch {
+    return "local";
+  }
 }
 
 export async function trackView(id: string): Promise<void> {
@@ -77,8 +117,19 @@ export async function trackView(id: string): Promise<void> {
   }
 }
 
-/** Public share URL for an experience, based on the current origin. */
+/**
+ * Public share URL for an experience. NEXT_PUBLIC_APP_URL (the deployed
+ * HTTPS domain) wins so QR codes always point at the canonical public URL;
+ * otherwise falls back to the current origin.
+ */
 export function shareUrl(id: string): string {
+  const envBase = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  if (envBase) return `${envBase}/ar/${id}`;
   if (typeof window === "undefined") return `/ar/${id}`;
   return `${window.location.origin}/ar/${id}`;
+}
+
+/** True when a share URL can't be reached from a phone (localhost / LAN-only dev). */
+export function isLocalShareUrl(url: string): boolean {
+  return /\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(url);
 }
