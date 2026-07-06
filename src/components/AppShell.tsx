@@ -41,7 +41,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <circle cx="12" cy="12" r="9" />
                 <path d="M3.5 12h17M12 3.5c2.6 2.3 3.9 5.3 3.9 8.5s-1.3 6.2-3.9 8.5c-2.6-2.3-3.9-5.3-3.9-8.5s1.3-6.2 3.9-8.5Z" />
               </svg>
-              {t.langName}
+              <span className="max-sm:hidden">{t.langName}</span>
             </button>
             <Link href="/" className="btn btn-ghost !px-3.5 !py-2 text-sm max-sm:hidden">
               {t.nav.experiences}

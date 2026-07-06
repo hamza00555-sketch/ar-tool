@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import ARViewerShell, { ViewerNotFound } from "@/components/ARViewerShell";
+import { notFound } from "next/navigation";
+import ARViewerShell from "@/components/ARViewerShell";
 import { getStore } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export default async function ARPage({ params }: Props) {
   const exp = await getStore().get(id);
 
   if (!exp) {
-    return <ViewerNotFound />;
+    notFound(); // renders ./not-found.tsx with a real 404 status
   }
 
   // Strip analytics before shipping to the client — viewers don't need it

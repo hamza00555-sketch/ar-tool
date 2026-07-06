@@ -153,7 +153,7 @@ export default function CreatePage() {
       {/* STEP 2 — content + live preview */}
       {step === 1 && type && (
         <div className="animate-rise grid gap-6 lg:grid-cols-[1fr_24rem]">
-          <div className="flex flex-col gap-6">
+          <div className="flex min-w-0 flex-col gap-6">
             <div>
               <h1 className="mb-1 text-2xl font-bold tracking-tight">
                 {t.wizard.contentTitle(t.types[type].label)}
@@ -332,7 +332,7 @@ export default function CreatePage() {
       {/* STEP 3 — details + publish */}
       {step === 2 && type && (
         <div className="animate-rise grid gap-6 lg:grid-cols-[1fr_24rem]">
-          <div className="flex max-w-xl flex-col gap-5">
+          <div className="flex min-w-0 max-w-xl flex-col gap-5">
             <h1 className="text-2xl font-bold tracking-tight">{t.wizard.publishTitle}</h1>
             <div>
               <span className="label">{t.wizard.titleLabel}</span>

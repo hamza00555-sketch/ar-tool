@@ -164,6 +164,7 @@ const PlaneViewer = forwardRef<
       if (videoRef.current) {
         videoRef.current.pause();
         videoRef.current.src = "";
+        videoRef.current.remove();
         videoRef.current = null;
       }
       rendererRef.current = null;
@@ -226,6 +227,12 @@ function buildContent(
     video.muted = true; // autoplay policy — the viewer exposes an unmute toggle
     video.playsInline = true;
     video.preload = "auto";
+    // Keep the element in the DOM (invisible) — some mobile browsers only
+    // decode reliably for attached elements, and it makes playback inspectable
+    video.style.cssText =
+      "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;inset-inline-start:0;top:0";
+    video.setAttribute("aria-hidden", "true");
+    document.body.appendChild(video);
     videoRef.current = video;
 
     const tex = new THREE.VideoTexture(video);

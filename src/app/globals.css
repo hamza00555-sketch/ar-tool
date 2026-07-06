@@ -66,6 +66,10 @@ body {
   background: rgb(25 201 173 / 0.35);
 }
 
+/* Component classes live in the `components` layer so Tailwind utilities
+   (e.g. max-sm:hidden, !px-*) can override them per-instance. */
+@layer components {
+
 /* ------------------------------- surfaces -------------------------------- */
 .glass {
   background: linear-gradient(160deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.02));
@@ -184,6 +188,8 @@ body {
   background: rgb(255 255 255 / 0.14);
   border-radius: 3px;
 }
+
+} /* end @layer components */
 
 /* model-viewer sizing */
 model-viewer {
