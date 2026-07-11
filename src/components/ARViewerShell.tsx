@@ -17,15 +17,27 @@ import PlaneViewer, {
 
 type ARCapability = "checking" | "ready" | "unsupported";
 
-const SERVER_PLATFORM = { mobile: false, ios: false };
-let platformCache: { mobile: boolean; ios: boolean } | null = null;
+interface Platform {
+  mobile: boolean;
+  ios: boolean;
+  android: boolean;
+  /** In-app webview (WhatsApp/Instagram/…): camera and AR are blocked there */
+  inApp: boolean;
+}
 
-function detectPlatform() {
+const SERVER_PLATFORM: Platform = { mobile: false, ios: false, android: false, inApp: false };
+let platformCache: Platform | null = null;
+
+function detectPlatform(): Platform {
   if (!platformCache) {
     const ua = navigator.userAgent;
     const ios =
       /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && "ontouchend" in document);
-    platformCache = { mobile: ios || /Android|Mobile/.test(ua), ios };
+    const android = /Android/.test(ua);
+    const inApp =
+      /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Snapchat|TikTok|Line\/|MicroMessenger/i.test(ua) ||
+      (android && /; wv\)/.test(ua));
+    platformCache = { mobile: ios || android || /Mobile/.test(ua), ios, android, inApp };
   }
   return platformCache;
 }
@@ -43,7 +55,7 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   const [capability, setCapability] = useState<ARCapability>("checking");
   const [error, setError] = useState<string | null>(null);
   const [muted, setMuted] = useState(true);
-  const { mobile, ios } = useSyncExternalStore(
+  const { mobile, ios, android, inApp } = useSyncExternalStore(
     noopSubscribe,
     detectPlatform,
     () => SERVER_PLATFORM
@@ -63,9 +75,13 @@ export default function ARViewerShell({ experience }: { experience: Experience }
     trackView(experience.id);
   }, [experience.id]);
 
+  // In-app webviews block camera/AR even when model-viewer reports ready —
+  // derived at render time so the warning shows without any state churn.
+  const effectiveCapability: ARCapability = inApp ? "unsupported" : capability;
+
   // Determine AR capability. model-viewer decides lazily, so poll it briefly.
   useEffect(() => {
-    if (!hasContent) return;
+    if (!hasContent || inApp) return;
     let cancelled = false;
     if (isModel) {
       let tries = 0;
@@ -84,11 +100,11 @@ export default function ARViewerShell({ experience }: { experience: Experience }
     return () => {
       cancelled = true;
     };
-  }, [isModel, hasContent]);
+  }, [isModel, hasContent, inApp]);
 
   const onStartAR = async () => {
     setStarted(true);
-    if (capability !== "ready") return; // preview only
+    if (effectiveCapability !== "ready") return; // preview only
     const ok = isModel
       ? await modelRef.current?.activateAR()
       : await planeRef.current?.startAR();
@@ -125,6 +141,12 @@ export default function ARViewerShell({ experience }: { experience: Experience }
             iosSrc={experience.content.usdzUrl}
             alt={experience.title}
             onLoadError={() => setError(t.viewer.loadErrorModel)}
+            onArFailed={() => {
+              // AR launch failed after the tap (ARCore missing, webview, …) —
+              // reopen the start overlay with the specific explanation.
+              setCapability("unsupported");
+              setStarted(false);
+            }}
           />
         ) : (
           <PlaneViewer
@@ -158,7 +180,7 @@ export default function ARViewerShell({ experience }: { experience: Experience }
               <p className="text-sm text-mist-300">{experience.description}</p>
             )}
 
-            {capability === "ready" ? (
+            {effectiveCapability === "ready" ? (
               <button onClick={onStartAR} className="btn btn-primary w-full !py-3.5 text-base">
                 <ARGlyph /> {t.viewer.startAR}
               </button>
@@ -168,17 +190,33 @@ export default function ARViewerShell({ experience }: { experience: Experience }
               </button>
             )}
 
-            {capability === "unsupported" && (
+            {effectiveCapability === "unsupported" && (
               <div className="w-full rounded-xl border border-ember-400/25 bg-ember-400/8 px-4 py-3 text-xs text-ember-400">
-                {mobile
-                  ? ios && isModel && !experience.content.usdzUrl
-                    ? t.viewer.iosNeedsUsdz
-                    : t.viewer.unsupportedMobile
-                  : t.viewer.desktopHint}
+                {!mobile ? (
+                  t.viewer.desktopHint
+                ) : inApp ? (
+                  t.viewer.inAppBrowser
+                ) : android ? (
+                  <>
+                    {t.viewer.androidNeedsArcore}{" "}
+                    <a
+                      href="https://play.google.com/store/apps/details?id=com.google.ar.core"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-semibold underline"
+                    >
+                      {t.viewer.androidArcoreLink}
+                    </a>
+                  </>
+                ) : ios && isModel && !experience.content.usdzUrl ? (
+                  t.viewer.iosNeedsUsdz
+                ) : (
+                  t.viewer.unsupportedMobile
+                )}
               </div>
             )}
 
-            {!mobile && capability !== "ready" && (
+            {!mobile && effectiveCapability !== "ready" && (
               <div className="glass-strong mt-2 w-full p-4">
                 <QRPanel url={url} compact />
               </div>
@@ -203,7 +241,7 @@ export default function ARViewerShell({ experience }: { experience: Experience }
               </button>
             )}
           </div>
-          {capability === "ready" && (
+          {effectiveCapability === "ready" && (
             <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2">
               <button onClick={onStartAR} className="btn btn-primary !rounded-full text-sm">
                 <ARGlyph /> {t.viewer.enterAR}

@@ -228,6 +228,11 @@ const en = {
     iosNeedsUsdz:
       "iPhone/iPad AR needs a USDZ version of this model — showing the 3D preview instead.",
     desktopHint: "AR works best on a phone. Scan the QR below to open this on mobile.",
+    inAppBrowser:
+      "You’re inside an app’s built-in browser (WhatsApp/Instagram/etc.) — it blocks the camera and AR. Tap the ⋯ menu and choose “Open in browser” (Chrome or Safari), then try again.",
+    androidNeedsArcore:
+      "This Android device can’t start AR — it needs “Google Play Services for AR” (ARCore). Install it, then reopen this page:",
+    androidArcoreLink: "Get ARCore from Google Play",
     noContentTitle: "This experience has no content yet",
     noContentBody: "Its creator hasn’t attached a model, image, video, or text. Check back soon.",
     notFoundTitle: "Experience not found",
@@ -413,6 +418,11 @@ const ar: Dict = {
     iosNeedsUsdz:
       "يتطلب الواقع المعزّز على آيفون/آيباد نسخة USDZ من هذا المجسّم — سنعرض المعاينة ثلاثية الأبعاد بدلاً منه.",
     desktopHint: "يعمل الواقع المعزّز بشكل أفضل على الهاتف. امسح رمز QR أدناه لفتحه على جوالك.",
+    inAppBrowser:
+      "أنت داخل متصفح مدمج في تطبيق (واتساب/إنستغرام/غيره) — وهو يمنع الكاميرا والواقع المعزّز. اضغط قائمة ⋯ واختر «فتح في المتصفح» (كروم أو سفاري) ثم جرّب مجدداً.",
+    androidNeedsArcore:
+      "جهاز أندرويد هذا لا يستطيع بدء الواقع المعزّز — يحتاج خدمة «Google Play Services for AR» ‏(ARCore). ثبّتها ثم أعد فتح الصفحة:",
+    androidArcoreLink: "تحميل ARCore من Google Play",
     noContentTitle: "لا يوجد محتوى في هذه التجربة بعد",
     noContentBody: "لم يُرفق منشئها مجسّماً أو صورة أو فيديو أو نصاً. عُد لاحقاً.",
     notFoundTitle: "التجربة غير موجودة",

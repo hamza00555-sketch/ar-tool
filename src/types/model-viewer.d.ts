@@ -16,6 +16,8 @@ type ModelViewerAttributes = React.DetailedHTMLProps<
   ar?: boolean;
   "ar-modes"?: string;
   "ar-scale"?: string;
+  /** Which iOS browsers may launch Quick Look ("safari", "chrome") */
+  "ios-src-allowed-browsers"?: string;
   "camera-controls"?: boolean;
   "auto-rotate"?: boolean;
   "shadow-intensity"?: string;

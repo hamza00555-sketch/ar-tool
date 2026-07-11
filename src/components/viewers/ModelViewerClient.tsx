@@ -27,8 +27,10 @@ const ModelViewerClient = forwardRef<
     iosSrc?: string;
     alt: string;
     onLoadError?: (message: string) => void;
+    /** Fired when an AR launch attempt fails (e.g. Scene Viewer/ARCore missing) */
+    onArFailed?: () => void;
   }
->(function ModelViewerClient({ src, iosSrc, alt, onLoadError }, ref) {
+>(function ModelViewerClient({ src, iosSrc, alt, onLoadError, onArFailed }, ref) {
   const elRef = useRef<ModelViewerElement>(null);
   const [defined, setDefined] = useState(false);
 
@@ -46,12 +48,22 @@ const ModelViewerClient = forwardRef<
 
   useEffect(() => {
     const el = elRef.current;
-    if (!el || !onLoadError) return;
+    if (!el) return;
     const onError = () =>
-      onLoadError("This 3D model couldn’t be loaded. Check the file is a valid .glb/.gltf.");
+      onLoadError?.("This 3D model couldn’t be loaded. Check the file is a valid .glb/.gltf.");
+    // model-viewer reports AR launch failures (e.g. ARCore not installed)
+    // asynchronously via ar-status — the click itself "succeeds".
+    const onArStatus = (e: Event) => {
+      const status = (e as CustomEvent<{ status?: string }>).detail?.status;
+      if (status === "failed") onArFailed?.();
+    };
     el.addEventListener("error", onError);
-    return () => el.removeEventListener("error", onError);
-  }, [defined, onLoadError]);
+    el.addEventListener("ar-status", onArStatus);
+    return () => {
+      el.removeEventListener("error", onError);
+      el.removeEventListener("ar-status", onArStatus);
+    };
+  }, [defined, onLoadError, onArFailed]);
 
   useImperativeHandle(ref, () => ({
     async activateAR() {
@@ -81,6 +93,7 @@ const ModelViewerClient = forwardRef<
       alt={alt}
       ar
       ar-modes="webxr scene-viewer quick-look"
+      ios-src-allowed-browsers="safari chrome"
       ar-scale="auto"
       camera-controls
       auto-rotate
