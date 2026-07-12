@@ -37,7 +37,19 @@ export default function LivePreview({
     );
   }
 
-  if (type === "model") {
+  // Tracked experiences preview their overlay content (camera tracking only
+  // makes sense on the public page); pick the viewer by file extension.
+  const ext = (content.assetUrl?.split(".").pop() ?? "").toLowerCase().split("?")[0];
+  const effectiveType: ARContentType =
+    type === "tracked"
+      ? ext === "glb" || ext === "gltf"
+        ? "model"
+        : ["mp4", "webm", "mov"].includes(ext)
+          ? "video"
+          : "image"
+      : type;
+
+  if (effectiveType === "model") {
     return (
       <ModelViewerClient
         src={content.assetUrl!}
@@ -51,7 +63,7 @@ export default function LivePreview({
     id: "preview",
     title: "Preview",
     description: "",
-    type,
+    type: effectiveType,
     status: "draft",
     content,
     createdAt: "",

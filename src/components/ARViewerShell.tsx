@@ -14,6 +14,7 @@ import PlaneViewer, {
   type PlaneViewerHandle,
   isImmersiveARSupported,
 } from "./viewers/PlaneViewer";
+import TrackedViewer, { type TrackedViewerHandle } from "./viewers/TrackedViewer";
 
 type ARCapability = "checking" | "ready" | "unsupported";
 
@@ -63,10 +64,13 @@ export default function ARViewerShell({ experience }: { experience: Experience }
 
   const modelRef = useRef<ModelViewerHandle>(null);
   const planeRef = useRef<PlaneViewerHandle>(null);
+  const trackedRef = useRef<TrackedViewerHandle>(null);
+  const [targetVisible, setTargetVisible] = useState(false);
 
   // Image experiences with a generated poster GLB also go through
   // model-viewer: that unlocks native camera AR (Quick Look / Scene Viewer)
   // on phones, where WebXR isn't available for flat content.
+  const isTracked = experience.type === "tracked";
   const isModel =
     experience.type === "model" ||
     (experience.type === "image" && Boolean(experience.content.arModelUrl));
@@ -77,7 +81,9 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   const hasContent =
     experience.type === "text"
       ? Boolean(experience.content.text)
-      : Boolean(experience.content.assetUrl);
+      : isTracked
+        ? Boolean(experience.content.assetUrl && experience.content.mindUrl)
+        : Boolean(experience.content.assetUrl);
 
   useEffect(() => {
     trackView(experience.id);
@@ -91,6 +97,20 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   useEffect(() => {
     if (!hasContent || inApp) return;
     let cancelled = false;
+    if (isTracked) {
+      // Image tracking needs only a camera (works even on desktop webcams)
+      Promise.resolve().then(() => {
+        if (!cancelled)
+          setCapability(
+            typeof navigator.mediaDevices?.getUserMedia === "function"
+              ? "ready"
+              : "unsupported"
+          );
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
     if (isModel) {
       let tries = 0;
       const tick = () => {
@@ -108,11 +128,24 @@ export default function ARViewerShell({ experience }: { experience: Experience }
     return () => {
       cancelled = true;
     };
-  }, [isModel, hasContent, inApp]);
+  }, [isModel, isTracked, hasContent, inApp]);
 
   const onStartAR = async () => {
     setStarted(true);
     if (effectiveCapability !== "ready") return; // preview only
+    if (isTracked) {
+      try {
+        await trackedRef.current?.start();
+      } catch (e) {
+        setStarted(false);
+        setError(
+          e instanceof Error && e.message === "camera"
+            ? t.viewer.cameraDenied
+            : t.viewer.trackerFailed
+        );
+      }
+      return;
+    }
     const ok = isModel
       ? await modelRef.current?.activateAR()
       : await planeRef.current?.startAR();
@@ -120,7 +153,9 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   };
 
   const toggleMute = () => {
-    const video = planeRef.current?.getVideoEl();
+    const video = isTracked
+      ? trackedRef.current?.getVideoEl()
+      : planeRef.current?.getVideoEl();
     if (!video) return;
     video.muted = !video.muted;
     if (!video.muted) video.play().catch(() => {});
@@ -142,7 +177,22 @@ export default function ARViewerShell({ experience }: { experience: Experience }
     <ViewerFrame>
       {/* The 3D stage fills the screen behind the overlays */}
       <div className="absolute inset-0">
-        {isModel ? (
+        {isTracked ? (
+          <TrackedViewer
+            ref={trackedRef}
+            experience={experience}
+            onTargetVisible={setTargetVisible}
+            onError={(kind) =>
+              setError(
+                kind === "camera"
+                  ? t.viewer.cameraDenied
+                  : kind === "tracker"
+                    ? t.viewer.trackerFailed
+                    : t.viewer.loadErrorContent
+              )
+            }
+          />
+        ) : isModel ? (
           <ModelViewerClient
             ref={modelRef}
             src={modelSrc!}
@@ -240,7 +290,8 @@ export default function ARViewerShell({ experience }: { experience: Experience }
             <div className="rounded-full border border-white/10 bg-ink-950/60 px-3.5 py-1.5 text-xs text-mist-300 backdrop-blur">
               {experience.title}
             </div>
-            {experience.type === "video" && (
+            {(experience.type === "video" ||
+              (isTracked && /\.(mp4|webm|mov)(\?|$)/i.test(experience.content.assetUrl ?? ""))) && (
               <button
                 onClick={toggleMute}
                 className="btn btn-ghost pointer-events-auto !rounded-full !px-3 !py-2 text-xs"
@@ -249,7 +300,14 @@ export default function ARViewerShell({ experience }: { experience: Experience }
               </button>
             )}
           </div>
-          {effectiveCapability === "ready" && (
+          {isTracked && !targetVisible && (
+            <div className="absolute inset-x-0 bottom-20 z-10 flex justify-center">
+              <span className="animate-pulse-soft rounded-full border border-aurora-500/30 bg-ink-950/70 px-4 py-2 text-sm text-aurora-300 backdrop-blur">
+                {t.viewer.pointAtTarget}
+              </span>
+            </div>
+          )}
+          {effectiveCapability === "ready" && !isTracked && (
             <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2">
               <button onClick={onStartAR} className="btn btn-primary !rounded-full text-sm">
                 <ARGlyph /> {t.viewer.enterAR}

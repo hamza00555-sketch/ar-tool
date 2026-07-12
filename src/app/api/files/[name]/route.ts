@@ -1,24 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
+import { MIME_BY_EXT } from "@/lib/upload-config";
 
 export const runtime = "nodejs";
 
 const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
-
-const MIME: Record<string, string> = {
-  ".glb": "model/gltf-binary",
-  ".gltf": "model/gltf+json",
-  ".usdz": "model/vnd.usdz+zip",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".webp": "image/webp",
-  ".gif": "image/gif",
-  ".mp4": "video/mp4",
-  ".webm": "video/webm",
-  ".mov": "video/quicktime",
-};
 
 export async function GET(
   _req: NextRequest,
@@ -28,7 +15,7 @@ export async function GET(
   // Serve only flat, known-extension files out of the upload dir
   const safe = path.basename(name);
   const ext = path.extname(safe).toLowerCase();
-  const mime = MIME[ext];
+  const mime = MIME_BY_EXT[ext];
   if (!mime || safe !== name) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

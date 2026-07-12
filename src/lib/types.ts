@@ -4,7 +4,7 @@
  * for Supabase (or any backend) without touching UI code.
  */
 
-export type ARContentType = "model" | "image" | "video" | "text";
+export type ARContentType = "model" | "image" | "video" | "text" | "tracked";
 
 export type ExperienceStatus = "draft" | "published";
 
@@ -27,6 +27,10 @@ export interface ExperienceContent {
    * camera AR (Quick Look / Scene Viewer) since iOS Safari lacks WebXR.
    */
   arModelUrl?: string;
+  /** `tracked` experiences: the reference image the camera looks for */
+  targetImageUrl?: string;
+  /** `tracked` experiences: compiled MindAR feature file (.mind) */
+  mindUrl?: string;
   /** The text to render for `text` experiences */
   text?: string;
   textStyle?: TextStyle;

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (!["model", "image", "video", "text"].includes(body.type)) {
+    if (!["model", "image", "video", "text", "tracked"].includes(body.type)) {
       return NextResponse.json({ error: "Unknown content type" }, { status: 400 });
     }
     // Image experiences get a poster-plane GLB so phones can open camera AR

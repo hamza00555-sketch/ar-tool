@@ -60,6 +60,7 @@ const en = {
     image: { label: "Image / Poster", blurb: "A floating image plane" },
     video: { label: "Video", blurb: "A floating video screen" },
     text: { label: "3D Text", blurb: "Extruded text you can style" },
+    tracked: { label: "Image Tracking", blurb: "Content pinned onto a real printed image" },
   } as Record<ARContentType, { label: string; blurb: string }>,
   templates: {
     packaging: {
@@ -129,13 +130,13 @@ const en = {
     orTemplate: "Or start from a template",
     contentTitle: (type: string) => `Add your ${type.toLowerCase()}`,
     contentSub: "The live preview updates as soon as content is ready.",
-    modelHint: ".glb or .gltf, up to 60 MB",
+    modelHint: ".glb or .gltf, up to 50 MB",
     useSample: "✦ Use the bundled sample model",
     iosLabel: "iOS Quick Look (optional)",
     usdzHint: ".usdz — enables native AR on iPhone/iPad",
     usdzAttached: "USDZ attached",
-    imageHint: ".png .jpg .webp .gif, up to 60 MB",
-    videoHint: ".mp4 .webm .mov, up to 60 MB",
+    imageHint: ".png .jpg .webp .gif, up to 50 MB",
+    videoHint: ".mp4 .webm .mov, up to 50 MB",
     orLinkVideo: "…or link a hosted video",
     useLink: "Use",
     linkedVideo: "linked video",
@@ -165,6 +166,17 @@ const en = {
     orbitHint: "Drag to orbit · pinch or scroll to zoom",
     previewEmptyText: "Type something to see it in 3D",
     previewEmpty: "Add content to see the live preview",
+    targetLabel: "Target image — what the camera looks for",
+    targetHint: ".png .jpg, print-quality",
+    targetQualityHint:
+      "Use a detailed, high-contrast picture (photos, artwork, busy packaging). Simple logos on plain backgrounds track poorly.",
+    compiling: (pct: number) => `Analyzing image features… ${pct}%`,
+    compileFailed: "Image analysis failed — try a more detailed picture.",
+    targetReady: "Target compiled ✓",
+    overlayLabel: "What appears on the image",
+    overlayModel: "3D model",
+    overlayVideo: "Video",
+    overlayImage: "Image",
   },
   upload: {
     drop: "Drop a file or",
@@ -243,6 +255,10 @@ const en = {
     loadErrorModel: "This 3D model couldn’t be loaded. Check the file is a valid .glb/.gltf.",
     loadErrorContent: "The content couldn’t be loaded. Check the file or the link.",
     viewerFailed: "The 3D viewer failed to load.",
+    pointAtTarget: "Point your camera at the target image",
+    cameraDenied:
+      "Camera access was denied — allow the camera for this site in your browser settings, then reload.",
+    trackerFailed: "The image tracker couldn’t start on this device.",
   },
 };
 
@@ -258,6 +274,7 @@ const ar: Dict = {
     image: { label: "صورة / ملصق", blurb: "لوحة صورة عائمة" },
     video: { label: "فيديو", blurb: "شاشة فيديو عائمة" },
     text: { label: "نص ثلاثي الأبعاد", blurb: "نص بارز يمكنك تنسيقه" },
+    tracked: { label: "تتبع صورة", blurb: "محتوى يلتصق بصورة مطبوعة حقيقية" },
   },
   templates: {
     packaging: {
@@ -324,13 +341,13 @@ const ar: Dict = {
     orTemplate: "أو ابدأ من قالب جاهز",
     contentTitle: (type: string) => `أضف ${type}`,
     contentSub: "تتحدّث المعاينة الحية فور جاهزية المحتوى.",
-    modelHint: "ملفات .glb أو .gltf، حتى 60 م.ب",
+    modelHint: "ملفات .glb أو .gltf، حتى 50 م.ب",
     useSample: "✦ استخدم النموذج المرفق",
     iosLabel: "iOS Quick Look (اختياري)",
     usdzHint: "ملف .usdz — يفعّل الواقع المعزّز الأصلي على آيفون/آيباد",
     usdzAttached: "تم إرفاق USDZ",
-    imageHint: "صور .png .jpg .webp .gif، حتى 60 م.ب",
-    videoHint: "فيديو .mp4 .webm .mov، حتى 60 م.ب",
+    imageHint: "صور .png .jpg .webp .gif، حتى 50 م.ب",
+    videoHint: "فيديو .mp4 .webm .mov، حتى 50 م.ب",
     orLinkVideo: "…أو ضع رابط فيديو مستضاف",
     useLink: "استخدام",
     linkedVideo: "فيديو مرتبط",
@@ -360,6 +377,17 @@ const ar: Dict = {
     orbitHint: "اسحب للتدوير · قرّب بإصبعين أو بعجلة الفأرة",
     previewEmptyText: "اكتب شيئاً لرؤيته بشكل ثلاثي الأبعاد",
     previewEmpty: "أضف محتوى لرؤية المعاينة الحية",
+    targetLabel: "الصورة المستهدفة — ما ستبحث عنه الكاميرا",
+    targetHint: "صور .png .jpg بجودة طباعة",
+    targetQualityHint:
+      "استخدم صورة غنية بالتفاصيل والتباين (صور فوتوغرافية، أعمال فنية، تصاميم مزدحمة). الشعارات البسيطة على خلفيات سادة يضعف تتبعها.",
+    compiling: (pct: number) => `جارٍ تحليل ملامح الصورة… ${pct}%`,
+    compileFailed: "فشل تحليل الصورة — جرّب صورة أكثر تفصيلاً.",
+    targetReady: "تم تجهيز الصورة المستهدفة ✓",
+    overlayLabel: "ما الذي يظهر فوق الصورة",
+    overlayModel: "مجسّم ثلاثي الأبعاد",
+    overlayVideo: "فيديو",
+    overlayImage: "صورة",
   },
   upload: {
     drop: "أسقط ملفاً أو",
@@ -433,6 +461,10 @@ const ar: Dict = {
     loadErrorModel: "تعذّر تحميل هذا المجسّم. تأكد أن الملف بصيغة .glb/.gltf صالحة.",
     loadErrorContent: "تعذّر تحميل المحتوى. تحقق من الملف أو الرابط.",
     viewerFailed: "تعذّر تحميل العارض ثلاثي الأبعاد.",
+    pointAtTarget: "وجّه الكاميرا نحو الصورة المستهدفة",
+    cameraDenied:
+      "تم رفض إذن الكاميرا — اسمح بالكاميرا لهذا الموقع من إعدادات المتصفح ثم أعد تحميل الصفحة.",
+    trackerFailed: "تعذّر تشغيل متتبع الصور على هذا الجهاز.",
   },
 };
 

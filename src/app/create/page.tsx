@@ -6,7 +6,7 @@ import AppShell from "@/components/AppShell";
 import TypeIcon from "@/components/TypeIcon";
 import UploadDropzone from "@/components/UploadDropzone";
 import LivePreview from "@/components/LivePreview";
-import { createExperience } from "@/lib/api";
+import { createExperience, uploadFile } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import {
   SAMPLE_MODEL_NAME,
@@ -17,7 +17,8 @@ import {
   type TextStyle,
 } from "@/lib/types";
 
-const CONTENT_TYPES: ARContentType[] = ["model", "image", "video", "text"];
+const CONTENT_TYPES: ARContentType[] = ["model", "image", "video", "text", "tracked"];
+type OverlayKind = "model" | "video" | "image";
 const TEXT_COLORS = ["#7ef4dc", "#a48bfa", "#ffb26b", "#f2f5fb", "#ff7d94"];
 const TEXT_FINISHES: TextStyle["finish"][] = ["metal", "matte", "neon"];
 
@@ -36,14 +37,36 @@ export default function CreatePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [overlayKind, setOverlayKind] = useState<OverlayKind>("model");
+  const [compilePct, setCompilePct] = useState<number | null>(null);
+  const [compileError, setCompileError] = useState<string | null>(null);
 
   const textStyle: TextStyle = content.textStyle ?? { color: "#7ef4dc", finish: "metal" };
 
   const contentReady = useMemo(() => {
     if (!type) return false;
     if (type === "text") return Boolean(content.text?.trim());
+    if (type === "tracked")
+      return Boolean(content.targetImageUrl && content.mindUrl && content.assetUrl);
     return Boolean(content.assetUrl);
   }, [type, content]);
+
+  /** Target image uploaded → analyze its features in-browser, store the .mind file */
+  const onTargetUploaded = async (f: { url: string; originalName: string }) => {
+    setContent((c) => ({ ...c, targetImageUrl: f.url, mindUrl: undefined }));
+    setCompileError(null);
+    setCompilePct(0);
+    try {
+      const { compileTargetImage } = await import("@/lib/compile-target");
+      const blob = await compileTargetImage(f.url, setCompilePct);
+      const up = await uploadFile(new File([blob], "targets.mind"), "mind");
+      setContent((c) => ({ ...c, mindUrl: up.url }));
+    } catch {
+      setCompileError(t.wizard.compileFailed);
+    } finally {
+      setCompilePct(null);
+    }
+  };
 
   const applyTemplate = (presetId: string) => {
     const preset = TEMPLATE_PRESETS.find((p) => p.id === presetId);
@@ -298,6 +321,110 @@ export default function CreatePage() {
                       </button>
                     ))}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {type === "tracked" && (
+              <div className="flex flex-col gap-5">
+                {/* Target image + feature compilation */}
+                <div>
+                  <span className="label">{t.wizard.targetLabel}</span>
+                  <UploadDropzone
+                    kind="image"
+                    hint={t.wizard.targetHint}
+                    currentName={
+                      content.mindUrl
+                        ? t.wizard.targetReady
+                        : content.targetImageUrl && compilePct === null
+                          ? undefined
+                          : undefined
+                    }
+                    onUploaded={onTargetUploaded}
+                  />
+                  <p className="mt-1.5 text-xs text-mist-600">{t.wizard.targetQualityHint}</p>
+                  {compilePct !== null && (
+                    <div className="mt-3">
+                      <p className="mb-1.5 text-xs text-aurora-300">
+                        {t.wizard.compiling(compilePct)}
+                      </p>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-aurora-400 to-iris-400 transition-all"
+                          style={{ width: `${compilePct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {compileError && (
+                    <p className="mt-2 rounded-lg border border-danger-400/30 bg-danger-400/10 px-3 py-2 text-xs text-danger-400">
+                      {compileError}
+                    </p>
+                  )}
+                  {content.targetImageUrl && (
+                    <div className="mt-3 flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- uploaded asset preview */}
+                      <img
+                        src={content.targetImageUrl}
+                        alt=""
+                        className="h-16 w-16 rounded-lg border border-white/10 object-cover"
+                      />
+                      {content.mindUrl && (
+                        <span className="text-xs text-aurora-300">{t.wizard.targetReady}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Overlay content */}
+                <div>
+                  <span className="label">{t.wizard.overlayLabel}</span>
+                  <div className="mb-3 flex gap-2">
+                    {(
+                      [
+                        ["model", t.wizard.overlayModel],
+                        ["video", t.wizard.overlayVideo],
+                        ["image", t.wizard.overlayImage],
+                      ] as [OverlayKind, string][]
+                    ).map(([k, label]) => (
+                      <button
+                        key={k}
+                        onClick={() => setOverlayKind(k)}
+                        className={`btn text-xs ${overlayKind === k ? "btn-primary" : "btn-ghost"}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <UploadDropzone
+                    key={overlayKind}
+                    kind={overlayKind}
+                    hint={
+                      overlayKind === "model"
+                        ? t.wizard.modelHint
+                        : overlayKind === "video"
+                          ? t.wizard.videoHint
+                          : t.wizard.imageHint
+                    }
+                    currentName={content.assetName}
+                    onUploaded={(f) =>
+                      setContent((c) => ({ ...c, assetUrl: f.url, assetName: f.originalName }))
+                    }
+                  />
+                  {overlayKind === "model" && (
+                    <button
+                      onClick={() =>
+                        setContent((c) => ({
+                          ...c,
+                          assetUrl: SAMPLE_MODEL_URL,
+                          assetName: SAMPLE_MODEL_NAME,
+                        }))
+                      }
+                      className="btn btn-ghost mt-3 self-start text-xs"
+                    >
+                      {t.wizard.useSample}
+                    </button>
+                  )}
                 </div>
               </div>
             )}

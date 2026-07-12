@@ -27,12 +27,14 @@ const TYPE_TO_DB: Record<ARContentType, string> = {
   image: "image",
   video: "video",
   text: "text3d",
+  tracked: "tracked_image",
 };
 const DB_TO_TYPE: Record<string, ARContentType> = {
   model3d: "model",
   image: "image",
   video: "video",
   text3d: "text",
+  tracked_image: "tracked",
 };
 
 interface ExperienceRow {
@@ -50,6 +52,8 @@ interface ExperienceRow {
     textStyle?: Experience["content"]["textStyle"];
     assetName?: string;
     arModelUrl?: string;
+    targetImageUrl?: string;
+    mindUrl?: string;
   };
   total_views: number;
   last_viewed_at: string | null;
@@ -78,6 +82,8 @@ function rowToExperience(row: ExperienceRow, events: ViewEvent[] = []): Experien
       assetName: row.config?.assetName,
       usdzUrl: row.usdz_url ?? undefined,
       arModelUrl: row.config?.arModelUrl,
+      targetImageUrl: row.config?.targetImageUrl,
+      mindUrl: row.config?.mindUrl,
       text: row.config?.text,
       textStyle: row.config?.textStyle,
     },
@@ -180,6 +186,8 @@ export class SupabaseStore implements ExperienceStore {
         textStyle: input.content?.textStyle,
         assetName: input.content?.assetName,
         arModelUrl: input.content?.arModelUrl,
+        targetImageUrl: input.content?.targetImageUrl,
+        mindUrl: input.content?.mindUrl,
       },
       status: input.status ?? "draft",
       ...inputToColumns(input),
@@ -214,6 +222,8 @@ export class SupabaseStore implements ExperienceStore {
         ...(c.textStyle !== undefined && { textStyle: c.textStyle }),
         ...(c.assetName !== undefined && { assetName: c.assetName }),
         ...(c.arModelUrl !== undefined && { arModelUrl: c.arModelUrl }),
+        ...(c.targetImageUrl !== undefined && { targetImageUrl: c.targetImageUrl }),
+        ...(c.mindUrl !== undefined && { mindUrl: c.mindUrl }),
       };
     }
     cols.updated_at = new Date().toISOString();

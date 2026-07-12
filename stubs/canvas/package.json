@@ -1,0 +1,6 @@
+{
+  "name": "canvas",
+  "version": "3.0.0",
+  "description": "Empty stub — mind-ar's node-side canvas dependency is unused in the browser-only integration",
+  "main": "index.js"
+}

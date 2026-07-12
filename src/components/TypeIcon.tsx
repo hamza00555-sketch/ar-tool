@@ -47,5 +47,13 @@ export default function TypeIcon({
           <path d="M12 4.8v14.4M9 19.2h6" />
         </svg>
       );
+    case "tracked":
+      return (
+        <svg {...common} aria-hidden>
+          <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16" />
+          <circle cx="9.5" cy="10" r="1.3" />
+          <path d="m6.5 15.5 3-2.6 2.2 1.9 2.3-2 3.5 2.7" />
+        </svg>
+      );
   }
 }

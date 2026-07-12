@@ -6,6 +6,8 @@ export const ALLOWED_EXTENSIONS: Record<string, string[]> = {
   usdz: [".usdz"],
   image: [".png", ".jpg", ".jpeg", ".webp", ".gif"],
   video: [".mp4", ".webm", ".mov"],
+  /** Compiled MindAR feature files for image-tracking experiences */
+  mind: [".mind"],
 };
 
 /** Keep in sync with the bucket's file_size_limit in the migration SQL. */
@@ -23,4 +25,5 @@ export const MIME_BY_EXT: Record<string, string> = {
   ".mp4": "video/mp4",
   ".webm": "video/webm",
   ".mov": "video/quicktime",
+  ".mind": "application/octet-stream",
 };
