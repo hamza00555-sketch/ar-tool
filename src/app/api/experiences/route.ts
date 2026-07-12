@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@/lib/store";
 import { serverError } from "@/lib/api-errors";
+import { generateImageArModel } from "@/lib/ar-model";
 import type { ExperienceInput } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -30,6 +31,12 @@ export async function POST(req: NextRequest) {
     }
     if (!["model", "image", "video", "text"].includes(body.type)) {
       return NextResponse.json({ error: "Unknown content type" }, { status: 400 });
+    }
+    // Image experiences get a poster-plane GLB so phones can open camera AR
+    // (Quick Look / Scene Viewer) — iOS Safari has no WebXR for flat content.
+    if (body.type === "image" && body.content?.assetUrl) {
+      const arModelUrl = await generateImageArModel(body.content.assetUrl);
+      if (arModelUrl) body.content.arModelUrl = arModelUrl;
     }
     const experience = await getStore().create(body);
     return NextResponse.json({ experience }, { status: 201 });

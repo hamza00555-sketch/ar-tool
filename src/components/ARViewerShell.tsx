@@ -64,10 +64,18 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   const modelRef = useRef<ModelViewerHandle>(null);
   const planeRef = useRef<PlaneViewerHandle>(null);
 
-  const isModel = experience.type === "model";
-  const hasContent = isModel
-    ? Boolean(experience.content.assetUrl)
-    : experience.type === "text"
+  // Image experiences with a generated poster GLB also go through
+  // model-viewer: that unlocks native camera AR (Quick Look / Scene Viewer)
+  // on phones, where WebXR isn't available for flat content.
+  const isModel =
+    experience.type === "model" ||
+    (experience.type === "image" && Boolean(experience.content.arModelUrl));
+  const modelSrc =
+    experience.type === "model"
+      ? experience.content.assetUrl
+      : experience.content.arModelUrl;
+  const hasContent =
+    experience.type === "text"
       ? Boolean(experience.content.text)
       : Boolean(experience.content.assetUrl);
 
@@ -137,7 +145,7 @@ export default function ARViewerShell({ experience }: { experience: Experience }
         {isModel ? (
           <ModelViewerClient
             ref={modelRef}
-            src={experience.content.assetUrl!}
+            src={modelSrc!}
             iosSrc={experience.content.usdzUrl}
             alt={experience.title}
             onLoadError={() => setError(t.viewer.loadErrorModel)}

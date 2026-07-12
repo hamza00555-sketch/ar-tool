@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStore } from "@/lib/store";
 import { serverError } from "@/lib/api-errors";
+import { generateImageArModel } from "@/lib/ar-model";
 import type { ExperienceInput } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -28,6 +29,14 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       patch = (await req.json()) as Partial<ExperienceInput>;
     } catch {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    // Regenerate the poster GLB when an image experience's picture changes
+    if (patch.content?.assetUrl) {
+      const current = await getStore().get(id);
+      if ((patch.type ?? current?.type) === "image") {
+        const arModelUrl = await generateImageArModel(patch.content.assetUrl);
+        if (arModelUrl) patch.content.arModelUrl = arModelUrl;
+      }
     }
     const experience = await getStore().update(id, patch);
     if (!experience) {

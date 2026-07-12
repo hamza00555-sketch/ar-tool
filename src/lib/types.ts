@@ -22,6 +22,11 @@ export interface ExperienceContent {
   assetName?: string;
   /** Optional iOS Quick Look asset for `model` experiences */
   usdzUrl?: string;
+  /**
+   * Auto-generated poster-plane GLB for `image` experiences — enables native
+   * camera AR (Quick Look / Scene Viewer) since iOS Safari lacks WebXR.
+   */
+  arModelUrl?: string;
   /** The text to render for `text` experiences */
   text?: string;
   textStyle?: TextStyle;

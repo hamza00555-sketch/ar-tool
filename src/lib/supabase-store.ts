@@ -45,7 +45,12 @@ interface ExperienceRow {
   asset_type: string | null;
   usdz_url: string | null;
   thumbnail_url: string | null;
-  config: { text?: string; textStyle?: Experience["content"]["textStyle"]; assetName?: string };
+  config: {
+    text?: string;
+    textStyle?: Experience["content"]["textStyle"];
+    assetName?: string;
+    arModelUrl?: string;
+  };
   total_views: number;
   last_viewed_at: string | null;
   created_at: string;
@@ -72,6 +77,7 @@ function rowToExperience(row: ExperienceRow, events: ViewEvent[] = []): Experien
       assetUrl: row.asset_url ?? undefined,
       assetName: row.config?.assetName,
       usdzUrl: row.usdz_url ?? undefined,
+      arModelUrl: row.config?.arModelUrl,
       text: row.config?.text,
       textStyle: row.config?.textStyle,
     },
@@ -173,6 +179,7 @@ export class SupabaseStore implements ExperienceStore {
         text: input.content?.text,
         textStyle: input.content?.textStyle,
         assetName: input.content?.assetName,
+        arModelUrl: input.content?.arModelUrl,
       },
       status: input.status ?? "draft",
       ...inputToColumns(input),
@@ -206,6 +213,7 @@ export class SupabaseStore implements ExperienceStore {
         ...(c.text !== undefined && { text: c.text }),
         ...(c.textStyle !== undefined && { textStyle: c.textStyle }),
         ...(c.assetName !== undefined && { assetName: c.assetName }),
+        ...(c.arModelUrl !== undefined && { arModelUrl: c.arModelUrl }),
       };
     }
     cols.updated_at = new Date().toISOString();
@@ -246,6 +254,21 @@ export class SupabaseStore implements ExperienceStore {
     });
     if (error) throw dbError("record the scan", error.message);
     return data === true;
+  }
+
+  /** Server-side upload for generated assets (poster GLBs — small files only). */
+  async uploadAsset(
+    path: string,
+    bytes: Uint8Array,
+    contentType: string
+  ): Promise<string> {
+    const { error } = await this.client.storage
+      .from(this.bucket)
+      .upload(path, bytes, { contentType, upsert: true });
+    if (error) {
+      throw new Error(`Storage error while saving a generated asset: ${error.message}`);
+    }
+    return this.client.storage.from(this.bucket).getPublicUrl(path).data.publicUrl;
   }
 
   /** Signed URL the browser can PUT a file to directly (bypasses Vercel's 4.5 MB body limit). */
