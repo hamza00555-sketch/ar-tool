@@ -1,16 +1,42 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 
 /** Studio chrome: top navigation + page container. Not used by the public viewer. */
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { t, toggleLocale } = useI18n();
+  const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 border-b border-white/8 bg-ink-950/70 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-2">
+            {pathname !== "/" && (
+              <button
+                onClick={() =>
+                  window.history.length > 1 ? router.back() : router.push("/")
+                }
+                className="btn btn-ghost !rounded-full !px-2.5 !py-2"
+                aria-label={t.wizard.back}
+                title={t.wizard.back}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-4.5 w-4.5 rtl:rotate-180"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M15 6 9 12l6 6" />
+                </svg>
+              </button>
+            )}
           <Link href="/" className="group flex items-center gap-2.5">
             <span className="relative flex h-8 w-8 items-center justify-center">
               <span className="absolute inset-0 rounded-xl bg-gradient-to-br from-aurora-400 to-iris-500 opacity-90 transition-transform group-hover:scale-105" />
@@ -31,6 +57,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               Holoform <span className="text-aurora">Studio</span>
             </span>
           </Link>
+          </div>
           <nav className="flex items-center gap-2">
             <button
               onClick={toggleLocale}

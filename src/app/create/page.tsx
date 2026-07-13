@@ -121,7 +121,7 @@ export default function CreatePage() {
       if (type === "image" && finalContent.assetUrl && scene?.theme) {
         try {
           const { bakeThemedPosterAssets } = await import("@/lib/bake-theme-glb");
-          const { glb, usdz } = await bakeThemedPosterAssets(
+          const { glb, usdz, audioEmbedded } = await bakeThemedPosterAssets(
             finalContent.assetUrl,
             scene,
             // Embed the soundtrack in the USDZ so Quick Look plays it natively
@@ -136,6 +136,7 @@ export default function CreatePage() {
           finalContent.arModelUrl = glbUp.url;
           // Hand-authored USDZ keeps the animations alive in iOS Quick Look
           finalContent.usdzUrl = usdzUp.url;
+          finalContent.audioInUsdz = audioEmbedded;
         } catch (e) {
           console.error("theme bake failed", e);
         }

@@ -65,6 +65,11 @@ export interface ExperienceContent {
   audioName?: string;
   /** Loop the soundtrack (default true) */
   audioLoop?: boolean;
+  /**
+   * True when the baked USDZ carries the soundtrack itself (SpatialAudio
+   * prim) — the viewer then skips page audio on iOS so it doesn't double.
+   */
+  audioInUsdz?: boolean;
 }
 
 export interface Experience {

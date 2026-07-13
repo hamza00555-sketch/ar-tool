@@ -34,6 +34,8 @@ export interface ThemedAssets {
   glb: Blob;
   /** For iOS Quick Look — hand-authored so animations survive */
   usdz: Blob;
+  /** True when the soundtrack got embedded into the USDZ */
+  audioEmbedded: boolean;
 }
 
 export async function bakeThemedPosterAssets(
@@ -86,7 +88,11 @@ export async function bakeThemedPosterAssets(
     posterPng, w, h, bannerPng, bw, bh, scene,
     audio: usdzAudio,
   };
-  return { glb: await buildGlb(inputs), usdz: buildThemedUsdz(inputs) };
+  return {
+    glb: await buildGlb(inputs),
+    usdz: buildThemedUsdz(inputs),
+    audioEmbedded: usdzAudio !== null,
+  };
 }
 
 async function buildGlb(inp: ThemedUsdzInputs): Promise<Blob> {

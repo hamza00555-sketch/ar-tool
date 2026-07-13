@@ -68,9 +68,16 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   const planeRef = useRef<PlaneViewerHandle>(null);
   const trackedRef = useRef<TrackedViewerHandle>(null);
   const [targetVisible, setTargetVisible] = useState(false);
+  const targetVisibleRef = useRef(false);
   // How flat content enters AR: real WebXR, or the camera-backdrop AR-lite
   // mode for browsers without WebXR (iOS Safari)
   const [planeArMode, setPlaneArMode] = useState<"webxr" | "camera" | null>(null);
+  // Back button only when the visitor navigated here (QR scans have no history)
+  const canGoBack = useSyncExternalStore(
+    noopSubscribe,
+    () => window.history.length > 1,
+    () => false
+  );
 
   // Image experiences with a generated poster GLB also go through
   // model-viewer: that unlocks native camera AR (Quick Look / Scene Viewer)
@@ -104,7 +111,6 @@ export default function ARViewerShell({ experience }: { experience: Experience }
     const el = new Audio(audioUrl);
     el.loop = audioLoop !== false;
     el.preload = "auto";
-    el.crossOrigin = "anonymous";
     audioRef.current = el;
     // Console-inspectable handle (same spirit as window.__holoformTracker)
     (window as unknown as { __holoformAudio?: HTMLAudioElement }).__holoformAudio = el;
@@ -187,13 +193,18 @@ export default function ARViewerShell({ experience }: { experience: Experience }
     // await breaks the user-activation chain.
     const audio = audioRef.current;
     if (audio) {
-      // Baked themed posters carry the sound inside the USDZ itself — Quick
-      // Look plays it natively, so page audio would double up on iPhone.
-      const quickLookHasAudio =
-        ios && isModel && experience.type === "image" && Boolean(experience.content.usdzUrl);
+      // When the baked USDZ carries the sound itself, Quick Look plays it
+      // natively — page audio would double up on iPhone, so skip it there.
+      const quickLookHasAudio = ios && Boolean(experience.content.audioInUsdz);
       if (isTracked) {
-        // Unlock only — playback follows target visibility
-        audio.play().then(() => audio.pause()).catch(() => {});
+        // Unlock only — playback follows target visibility. Guarded so a
+        // fast target-found doesn't get paused by this unlock resolving late.
+        audio
+          .play()
+          .then(() => {
+            if (!targetVisibleRef.current) audio.pause();
+          })
+          .catch(() => {});
       } else if (!quickLookHasAudio) {
         audio.play().catch(() => {});
       }
@@ -263,7 +274,10 @@ export default function ARViewerShell({ experience }: { experience: Experience }
           <TrackedViewer
             ref={trackedRef}
             experience={experience}
-            onTargetVisible={setTargetVisible}
+            onTargetVisible={(v) => {
+              targetVisibleRef.current = v;
+              setTargetVisible(v);
+            }}
             onError={(kind) =>
               setError(
                 kind === "camera"
@@ -304,6 +318,27 @@ export default function ARViewerShell({ experience }: { experience: Experience }
           className="btn btn-ghost absolute top-4 end-4 z-30 !rounded-full !px-3 !py-1.5 text-xs"
         >
           {langName}
+        </button>
+      )}
+
+      {/* Back — for visitors who navigated here from within the app */}
+      {!started && canGoBack && (
+        <button
+          onClick={() => window.history.back()}
+          className="btn btn-ghost absolute top-4 start-4 z-30 flex items-center gap-1.5 !rounded-full !px-3 !py-1.5 text-xs"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5 rtl:rotate-180"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M15 6 9 12l6 6" />
+          </svg>
+          {t.wizard.back}
         </button>
       )}
 

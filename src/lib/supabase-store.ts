@@ -58,6 +58,7 @@ interface ExperienceRow {
     audioUrl?: string;
     audioName?: string;
     audioLoop?: boolean;
+    audioInUsdz?: boolean;
   };
   total_views: number;
   last_viewed_at: string | null;
@@ -94,6 +95,7 @@ function rowToExperience(row: ExperienceRow, events: ViewEvent[] = []): Experien
       audioUrl: row.config?.audioUrl,
       audioName: row.config?.audioName,
       audioLoop: row.config?.audioLoop,
+      audioInUsdz: row.config?.audioInUsdz,
     },
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -200,6 +202,7 @@ export class SupabaseStore implements ExperienceStore {
         audioUrl: input.content?.audioUrl,
         audioName: input.content?.audioName,
         audioLoop: input.content?.audioLoop,
+        audioInUsdz: input.content?.audioInUsdz,
       },
       status: input.status ?? "draft",
       ...inputToColumns(input),
@@ -240,6 +243,7 @@ export class SupabaseStore implements ExperienceStore {
         ...(c.audioUrl !== undefined && { audioUrl: c.audioUrl }),
         ...(c.audioName !== undefined && { audioName: c.audioName }),
         ...(c.audioLoop !== undefined && { audioLoop: c.audioLoop }),
+        ...(c.audioInUsdz !== undefined && { audioInUsdz: c.audioInUsdz }),
       };
     }
     cols.updated_at = new Date().toISOString();

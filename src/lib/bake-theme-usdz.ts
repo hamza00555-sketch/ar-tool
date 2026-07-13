@@ -156,16 +156,17 @@ ${sineSamples(endTime, (ph) =>
     }
   }
 
-  /* soundtrack — Apple's preliminary audio schema (Quick Look plays it
-     while the AR session runs; other USD tools simply ignore the prim) */
+  /* soundtrack — the standard UsdMedia SpatialAudio schema, which modern
+     Quick Look supports (the old Preliminary_AudioSpatialAudio is obsolete
+     and gets ignored). Other USD tools simply skip the prim. */
   if (inp.audio) {
     parts.push(`
-    def Preliminary_AudioSpatialAudio "Soundtrack"
+    def SpatialAudio "Soundtrack"
     {
-        uniform asset preliminary:reference = @audio/track${inp.audio.ext}@
-        uniform token preliminary:auralMode = "nonSpatial"
-        uniform token preliminary:playbackMode = "${inp.audio.loop ? "loopFromStage" : "onceImmediate"}"
-        uniform double preliminary:gain = 1
+        uniform asset filePath = @audio/track${inp.audio.ext}@
+        uniform token auralMode = "nonSpatial"
+        uniform token playbackMode = "${inp.audio.loop ? "loopFromStage" : "onceFromStart"}"
+        uniform double gain = 1
     }`);
   }
 

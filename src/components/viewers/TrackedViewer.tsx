@@ -137,6 +137,14 @@ const TrackedViewer = forwardRef<
         const nowVisible = worldMatrix != null;
         if (nowVisible !== targetVisible) {
           targetVisible = nowVisible;
+          // Overlay video runs only while the target is in view — constant
+          // decoding + per-frame texture uploads otherwise starve the
+          // feature matcher and visibly degrade tracking.
+          const overlayVideo = videoRef.current;
+          if (overlayVideo) {
+            if (nowVisible) overlayVideo.play().catch(() => {});
+            else overlayVideo.pause();
+          }
           onTargetVisibleRef.current?.(nowVisible);
         }
       },
@@ -322,7 +330,10 @@ function buildOverlay(
     );
     anchor.add(plane); // covers the printed image exactly — “poster comes alive”
     video.addEventListener("error", onError, { once: true });
-    video.play().catch(() => {});
+    // Preload only — playback starts when the target is found (muted video
+    // needs no gesture), keeping the search phase free of decode load
+    video.preload = "auto";
+    video.load();
     return;
   }
 
