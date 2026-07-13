@@ -13,6 +13,7 @@
  * Runs entirely in the browser at save time (@gltf-transform/core is pure JS).
  */
 import { Document, WebIO, type Node as GltfNode } from "@gltf-transform/core";
+import { buildThemedUsdz, type ThemedUsdzInputs } from "./bake-theme-usdz";
 import type { SceneConfig } from "./types";
 
 const BALLOON_COLORS: [number, number, number][] = [
@@ -24,16 +25,42 @@ const BALLOON_COLORS: [number, number, number][] = [
   [1.0, 0.62, 0.37],
 ];
 
-export async function bakeThemedPosterGlb(
+export interface ThemedAssets {
+  /** For Android Scene Viewer / web preview — animations play */
+  glb: Blob;
+  /** For iOS Quick Look — hand-authored so animations survive */
+  usdz: Blob;
+}
+
+export async function bakeThemedPosterAssets(
   imageUrl: string,
   scene: SceneConfig
-): Promise<Blob> {
-  /* ---- rasterize inputs (canvas: shaping-safe text, size-safe poster) ---- */
+): Promise<ThemedAssets> {
+  /* ---- rasterize once (canvas: shaping-safe text, size-safe poster) ---- */
   const posterCanvas = await imageToCanvas(imageUrl, 2048);
   const posterPng = await canvasPng(posterCanvas);
   const aspect = posterCanvas.width / posterCanvas.height;
   const w = aspect >= 1 ? 0.9 : 0.9 * aspect;
   const h = aspect >= 1 ? 0.9 / aspect : 0.9;
+
+  let bannerPng: Uint8Array | null = null;
+  let bw = 0;
+  let bh = 0;
+  const bannerText = (scene.bannerText ?? "").trim();
+  if (bannerText) {
+    const bc = renderBannerCanvas(bannerText, scene.bannerColor ?? "#ffc94d");
+    bannerPng = await canvasPng(bc);
+    const bAspect = bc.width / bc.height;
+    bw = Math.min(1.15 * w, bAspect * 0.22);
+    bh = bw / bAspect;
+  }
+
+  const inputs: ThemedUsdzInputs = { posterPng, w, h, bannerPng, bw, bh, scene };
+  return { glb: await buildGlb(inputs), usdz: buildThemedUsdz(inputs) };
+}
+
+async function buildGlb(inp: ThemedUsdzInputs): Promise<Blob> {
+  const { posterPng, w, h, scene } = inp;
 
   const doc = new Document();
   const buffer = doc.createBuffer();
@@ -56,13 +83,8 @@ export async function bakeThemedPosterGlb(
   );
 
   /* ------------------------------- banner -------------------------------- */
-  const bannerText = (scene.bannerText ?? "").trim();
-  if (bannerText) {
-    const bannerCanvas = renderBannerCanvas(bannerText, scene.bannerColor ?? "#ffc94d");
-    const bannerPng = await canvasPng(bannerCanvas);
-    const bAspect = bannerCanvas.width / bannerCanvas.height;
-    const bw = Math.min(1.15 * w, bAspect * 0.22);
-    const bh = bw / bAspect;
+  if (inp.bannerPng) {
+    const { bannerPng, bw, bh } = inp;
     const tex = doc.createTexture("banner").setImage(bannerPng).setMimeType("image/png");
     const mat = doc
       .createMaterial("banner")

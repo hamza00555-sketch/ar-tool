@@ -120,10 +120,15 @@ export default function CreatePage() {
       // decorations included. Non-fatal: without it the web viewer handles it.
       if (type === "image" && finalContent.assetUrl && scene?.theme) {
         try {
-          const { bakeThemedPosterGlb } = await import("@/lib/bake-theme-glb");
-          const glb = await bakeThemedPosterGlb(finalContent.assetUrl, scene);
-          const up = await uploadFile(new File([glb], "themed-poster.glb"), "model");
-          finalContent.arModelUrl = up.url;
+          const { bakeThemedPosterAssets } = await import("@/lib/bake-theme-glb");
+          const { glb, usdz } = await bakeThemedPosterAssets(finalContent.assetUrl, scene);
+          const [glbUp, usdzUp] = await Promise.all([
+            uploadFile(new File([glb], "themed-poster.glb"), "model"),
+            uploadFile(new File([usdz], "themed-poster.usdz"), "usdz"),
+          ]);
+          finalContent.arModelUrl = glbUp.url;
+          // Hand-authored USDZ keeps the animations alive in iOS Quick Look
+          finalContent.usdzUrl = usdzUp.url;
         } catch (e) {
           console.error("theme bake failed", e);
         }
