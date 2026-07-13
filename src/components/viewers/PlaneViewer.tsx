@@ -12,6 +12,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 import { buildDecorations } from "@/lib/scene-decorations";
+import { loadSafeTexture } from "@/lib/safe-texture";
 import type { Experience } from "@/lib/types";
 
 export interface PlaneViewerHandle {
@@ -127,13 +128,16 @@ const PlaneViewer = forwardRef<
     if (deco) content.add(deco.group);
 
     const clock = new THREE.Clock();
+    let idleT = 0;
     renderer.setAnimationLoop(() => {
       const dt = clock.getDelta();
       const inXR = renderer.xr.isPresenting;
       if (!inXR) {
         controls.update();
-        // Gentle idle float in preview mode
-        content.rotation.y += dt * 0.12;
+        // Gentle idle sway (±~17°) — never a full spin, so flat content
+        // is never seen from behind (dark poster back / reversed text)
+        idleT += dt;
+        content.rotation.y = Math.sin(idleT * 0.5) * 0.3;
       }
       deco?.update(dt);
       renderer.render(scene, camera);
@@ -215,16 +219,14 @@ function buildContent(
   const { content, type } = exp;
 
   if (type === "image" && content.assetUrl) {
-    new THREE.TextureLoader().load(
-      content.assetUrl,
-      (tex) => {
-        tex.colorSpace = THREE.SRGBColorSpace;
-        const aspect = tex.image.width / tex.image.height;
-        group.add(framedPlane(tex, aspect));
-      },
-      undefined,
-      onError
-    );
+    // loadSafeTexture downscales phone-camera-sized images that would
+    // otherwise exceed mobile WebGL texture limits and render black
+    loadSafeTexture(content.assetUrl)
+      .then((tex) => {
+        const img = tex.image as { width: number; height: number };
+        group.add(framedPlane(tex, img.width / img.height));
+      })
+      .catch(onError);
     return;
   }
 

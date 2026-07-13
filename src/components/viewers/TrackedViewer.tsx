@@ -9,6 +9,7 @@ import {
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { buildDecorations } from "@/lib/scene-decorations";
+import { loadSafeTexture } from "@/lib/safe-texture";
 import type { Experience } from "@/lib/types";
 
 export interface TrackedViewerHandle {
@@ -325,20 +326,17 @@ function buildOverlay(
     return;
   }
 
-  // image overlay
-  new THREE.TextureLoader().load(
-    assetUrl,
-    (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      const aspect = tex.image.height / tex.image.width;
+  // image overlay — safe loader downscales beyond-limit phone photos
+  loadSafeTexture(assetUrl)
+    .then((tex) => {
+      const img = tex.image as { width: number; height: number };
+      const aspect = img.height / img.width;
       const plane = new THREE.Mesh(
         new THREE.PlaneGeometry(1, aspect),
         new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false })
       );
       plane.position.z = 0.01;
       anchor.add(plane);
-    },
-    undefined,
-    onError
-  );
+    })
+    .catch(onError);
 }

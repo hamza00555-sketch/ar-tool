@@ -136,8 +136,24 @@ function pseudo(n: number): number {
   return x - Math.floor(x);
 }
 
-/** Crisp text on a transparent canvas plane — browser shaping (Arabic-safe). */
-function textPlane(text: string, colorHex: string): THREE.Mesh {
+/**
+ * Crisp text on a transparent canvas plane — browser shaping (Arabic-safe).
+ * Built as front + back copies so the text reads correctly from BOTH sides
+ * (a single double-sided plane shows mirrored text from behind — noticeable
+ * because the preview idles in rotation).
+ */
+function textPlane(text: string, colorHex: string): THREE.Group {
+  const front = textMesh(text, colorHex);
+  const back = textMesh(text, colorHex);
+  back.rotation.y = Math.PI;
+  back.position.z = -0.001;
+  front.position.z = 0.001;
+  const g = new THREE.Group();
+  g.add(front, back);
+  return g;
+}
+
+function textMesh(text: string, colorHex: string): THREE.Mesh {
   const fontPx = 180;
   const font = `800 ${fontPx}px system-ui, "Segoe UI", "Noto Sans Arabic", sans-serif`;
   const canvas = document.createElement("canvas");
@@ -169,7 +185,7 @@ function textPlane(text: string, colorHex: string): THREE.Mesh {
     new THREE.MeshBasicMaterial({
       map: tex,
       transparent: true,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide, // each copy is visible from its own side only
       toneMapped: false,
     })
   );
