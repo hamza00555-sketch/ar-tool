@@ -9,6 +9,7 @@ const KIND_ACCEPT: Record<string, string> = {
   usdz: ".usdz",
   image: ".png,.jpg,.jpeg,.webp,.gif",
   video: ".mp4,.webm,.mov",
+  audio: ".mp3,.m4a,.wav",
 };
 
 /**
@@ -21,7 +22,7 @@ export default function UploadDropzone({
   currentName,
   onUploaded,
 }: {
-  kind: "model" | "usdz" | "image" | "video";
+  kind: "model" | "usdz" | "image" | "video" | "audio";
   hint: string;
   currentName?: string;
   onUploaded: (file: { url: string; originalName: string }) => void;

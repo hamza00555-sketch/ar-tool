@@ -55,7 +55,7 @@ export async function deleteExperience(id: string): Promise<void> {
 
 export async function uploadFile(
   file: File,
-  kind: "model" | "usdz" | "image" | "video" | "mind"
+  kind: "model" | "usdz" | "image" | "video" | "mind" | "audio"
 ): Promise<{ url: string; originalName: string; size: number }> {
   // Step 1 — ask the server how to upload (validates name/size/kind too)
   const signRes = await fetch("/api/upload/sign", {

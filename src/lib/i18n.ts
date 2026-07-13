@@ -189,6 +189,12 @@ const en = {
     confettiLabel: "Confetti",
     themeWebNote:
       "Decorations show in the browser viewer (preview, WebXR, image tracking) — native iOS/Android model hand-off shows the model only.",
+    audioLabel: "Soundtrack (optional)",
+    audioHint: ".mp3 .m4a .wav, up to 50 MB",
+    audioLoopLabel: "Loop the sound",
+    audioRemove: "Remove sound",
+    audioNote:
+      "The sound starts when the visitor taps Start AR. Themed posters embed it inside iPhone AR itself; Android's native model viewer keeps playing it from the page.",
   },
   upload: {
     drop: "Drop a file or",
@@ -412,6 +418,12 @@ const ar: Dict = {
     confettiLabel: "قصاصات ملونة",
     themeWebNote:
       "الزينة تظهر في عارض المتصفح (المعاينة، WebXR، تتبع الصور) — العارض الأصلي للمجسّمات على iOS/أندرويد يعرض المجسّم فقط.",
+    audioLabel: "صوت مصاحب (اختياري)",
+    audioHint: "ملفات .mp3 .m4a .wav، حتى 50 م.ب",
+    audioLoopLabel: "تكرار الصوت",
+    audioRemove: "إزالة الصوت",
+    audioNote:
+      "يبدأ الصوت عندما يضغط الزائر «ابدأ الواقع المعزّز». في الملصقات المزخرفة يُدمج الصوت داخل تجربة آيفون نفسها، وعلى أندرويد يستمر تشغيله من صفحة المتصفح.",
   },
   upload: {
     drop: "أسقط ملفاً أو",

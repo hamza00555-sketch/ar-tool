@@ -13,7 +13,11 @@
  * Runs entirely in the browser at save time (@gltf-transform/core is pure JS).
  */
 import { Document, WebIO, type Node as GltfNode } from "@gltf-transform/core";
-import { buildThemedUsdz, type ThemedUsdzInputs } from "./bake-theme-usdz";
+import {
+  buildThemedUsdz,
+  type ThemedUsdzAudio,
+  type ThemedUsdzInputs,
+} from "./bake-theme-usdz";
 import type { SceneConfig } from "./types";
 
 const BALLOON_COLORS: [number, number, number][] = [
@@ -34,7 +38,9 @@ export interface ThemedAssets {
 
 export async function bakeThemedPosterAssets(
   imageUrl: string,
-  scene: SceneConfig
+  scene: SceneConfig,
+  /** Soundtrack to embed in the USDZ so Quick Look plays it natively */
+  audio?: { url: string; loop: boolean } | null
 ): Promise<ThemedAssets> {
   /* ---- rasterize once (canvas: shaping-safe text, size-safe poster) ---- */
   const posterCanvas = await imageToCanvas(imageUrl, 2048);
@@ -55,7 +61,31 @@ export async function bakeThemedPosterAssets(
     bh = bw / bAspect;
   }
 
-  const inputs: ThemedUsdzInputs = { posterPng, w, h, bannerPng, bw, bh, scene };
+  // The soundtrack goes into the USDZ only — glTF has no audio, and the web
+  // viewer plays the same file straight from its URL. Non-fatal on failure.
+  let usdzAudio: ThemedUsdzAudio | null = null;
+  if (audio) {
+    try {
+      const ext = "." + (audio.url.split(".").pop() ?? "").toLowerCase().split("?")[0];
+      if ([".mp3", ".m4a", ".wav"].includes(ext)) {
+        const res = await fetch(audio.url);
+        if (res.ok) {
+          usdzAudio = {
+            data: new Uint8Array(await res.arrayBuffer()),
+            ext,
+            loop: audio.loop,
+          };
+        }
+      }
+    } catch (e) {
+      console.error("soundtrack embed failed", e);
+    }
+  }
+
+  const inputs: ThemedUsdzInputs = {
+    posterPng, w, h, bannerPng, bw, bh, scene,
+    audio: usdzAudio,
+  };
   return { glb: await buildGlb(inputs), usdz: buildThemedUsdz(inputs) };
 }
 

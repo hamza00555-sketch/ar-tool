@@ -22,6 +22,15 @@ export interface ThemedUsdzInputs {
   bw: number;
   bh: number;
   scene: SceneConfig;
+  /** Optional soundtrack embedded via Apple's preliminary audio schema */
+  audio?: ThemedUsdzAudio | null;
+}
+
+export interface ThemedUsdzAudio {
+  data: Uint8Array;
+  /** File extension incl. dot — Quick Look accepts .mp3 / .m4a / .wav */
+  ext: string;
+  loop: boolean;
 }
 
 const BALLOON_COLORS: [number, number, number][] = [
@@ -42,6 +51,7 @@ export function buildThemedUsdz(inp: ThemedUsdzInputs): Blob {
     { name: "textures/poster.png", data: inp.posterPng },
   ];
   if (inp.bannerPng) files.push({ name: "textures/banner.png", data: inp.bannerPng });
+  if (inp.audio) files.push({ name: `audio/track${inp.audio.ext}`, data: inp.audio.data });
   return new Blob([packUsdz(files) as BlobPart], { type: "model/vnd.usdz+zip" });
 }
 
@@ -144,6 +154,19 @@ ${sineSamples(endTime, (ph) =>
     for (let ci = 0; ci < BALLOON_COLORS.length; ci++) {
       parts.push(confettiMesh(ci, 10, w, h, endTime));
     }
+  }
+
+  /* soundtrack — Apple's preliminary audio schema (Quick Look plays it
+     while the AR session runs; other USD tools simply ignore the prim) */
+  if (inp.audio) {
+    parts.push(`
+    def Preliminary_AudioSpatialAudio "Soundtrack"
+    {
+        uniform asset preliminary:reference = @audio/track${inp.audio.ext}@
+        uniform token preliminary:auralMode = "nonSpatial"
+        uniform token preliminary:playbackMode = "${inp.audio.loop ? "loopFromStage" : "onceImmediate"}"
+        uniform double preliminary:gain = 1
+    }`);
   }
 
   /* materials */

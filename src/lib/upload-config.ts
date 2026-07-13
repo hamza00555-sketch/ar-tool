@@ -8,6 +8,8 @@ export const ALLOWED_EXTENSIONS: Record<string, string[]> = {
   video: [".mp4", ".webm", ".mov"],
   /** Compiled MindAR feature files for image-tracking experiences */
   mind: [".mind"],
+  /** Soundtracks — formats Quick Look can embed in a USDZ (mp3/m4a/wav) */
+  audio: [".mp3", ".m4a", ".wav"],
 };
 
 /** Keep in sync with the bucket's file_size_limit in the migration SQL. */
@@ -26,4 +28,7 @@ export const MIME_BY_EXT: Record<string, string> = {
   ".webm": "video/webm",
   ".mov": "video/quicktime",
   ".mind": "application/octet-stream",
+  ".mp3": "audio/mpeg",
+  ".m4a": "audio/mp4",
+  ".wav": "audio/wav",
 };

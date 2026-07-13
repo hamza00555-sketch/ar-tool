@@ -59,6 +59,12 @@ export interface ExperienceContent {
   /** The text to render for `text` experiences */
   text?: string;
   textStyle?: TextStyle;
+  /** Optional soundtrack that plays while the experience is viewed */
+  audioUrl?: string;
+  /** Original filename of the uploaded audio (display only) */
+  audioName?: string;
+  /** Loop the soundtrack (default true) */
+  audioLoop?: boolean;
 }
 
 export interface Experience {

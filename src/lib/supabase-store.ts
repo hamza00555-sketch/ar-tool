@@ -55,6 +55,9 @@ interface ExperienceRow {
     targetImageUrl?: string;
     mindUrl?: string;
     scene?: Experience["content"]["scene"];
+    audioUrl?: string;
+    audioName?: string;
+    audioLoop?: boolean;
   };
   total_views: number;
   last_viewed_at: string | null;
@@ -88,6 +91,9 @@ function rowToExperience(row: ExperienceRow, events: ViewEvent[] = []): Experien
       scene: row.config?.scene,
       text: row.config?.text,
       textStyle: row.config?.textStyle,
+      audioUrl: row.config?.audioUrl,
+      audioName: row.config?.audioName,
+      audioLoop: row.config?.audioLoop,
     },
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -191,6 +197,9 @@ export class SupabaseStore implements ExperienceStore {
         targetImageUrl: input.content?.targetImageUrl,
         mindUrl: input.content?.mindUrl,
         scene: input.content?.scene,
+        audioUrl: input.content?.audioUrl,
+        audioName: input.content?.audioName,
+        audioLoop: input.content?.audioLoop,
       },
       status: input.status ?? "draft",
       ...inputToColumns(input),
@@ -228,6 +237,9 @@ export class SupabaseStore implements ExperienceStore {
         ...(c.targetImageUrl !== undefined && { targetImageUrl: c.targetImageUrl }),
         ...(c.mindUrl !== undefined && { mindUrl: c.mindUrl }),
         ...(c.scene !== undefined && { scene: c.scene }),
+        ...(c.audioUrl !== undefined && { audioUrl: c.audioUrl }),
+        ...(c.audioName !== undefined && { audioName: c.audioName }),
+        ...(c.audioLoop !== undefined && { audioLoop: c.audioLoop }),
       };
     }
     cols.updated_at = new Date().toISOString();

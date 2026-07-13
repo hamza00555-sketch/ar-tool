@@ -55,7 +55,9 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   const [started, setStarted] = useState(false);
   const [capability, setCapability] = useState<ARCapability>("checking");
   const [error, setError] = useState<string | null>(null);
-  const [muted, setMuted] = useState(true);
+  // Videos must start muted (autoplay policy); a soundtrack starts audible
+  // because it only ever plays from the user's Start-AR tap.
+  const [muted, setMuted] = useState(() => !experience.content.audioUrl);
   const { mobile, ios, android, inApp } = useSyncExternalStore(
     noopSubscribe,
     detectPlatform,
@@ -93,6 +95,37 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   useEffect(() => {
     trackView(experience.id);
   }, [experience.id]);
+
+  /* ------------------------------ soundtrack ------------------------------ */
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { audioUrl, audioLoop } = experience.content;
+  useEffect(() => {
+    if (!audioUrl) return;
+    const el = new Audio(audioUrl);
+    el.loop = audioLoop !== false;
+    el.preload = "auto";
+    el.crossOrigin = "anonymous";
+    audioRef.current = el;
+    // Console-inspectable handle (same spirit as window.__holoformTracker)
+    (window as unknown as { __holoformAudio?: HTMLAudioElement }).__holoformAudio = el;
+    return () => {
+      el.pause();
+      el.src = "";
+      audioRef.current = null;
+    };
+  }, [audioUrl, audioLoop]);
+
+  // Tracked experiences: the soundtrack follows the target — plays while the
+  // image is in view, pauses when it's lost. (Playback was unlocked by the
+  // Start-AR tap, so later play() calls are allowed.)
+  useEffect(() => {
+    if (!isTracked || !started) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (targetVisible) audio.play().catch(() => {});
+    else audio.pause();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetVisible, started]);
 
   // In-app webviews block camera/AR even when model-viewer reports ready —
   // derived at render time so the warning shows without any state churn.
@@ -150,6 +183,21 @@ export default function ARViewerShell({ experience }: { experience: Experience }
 
   const onStartAR = async () => {
     setStarted(true);
+    // Start (or unlock) the soundtrack inside the tap gesture, before any
+    // await breaks the user-activation chain.
+    const audio = audioRef.current;
+    if (audio) {
+      // Baked themed posters carry the sound inside the USDZ itself — Quick
+      // Look plays it natively, so page audio would double up on iPhone.
+      const quickLookHasAudio =
+        ios && isModel && experience.type === "image" && Boolean(experience.content.usdzUrl);
+      if (isTracked) {
+        // Unlock only — playback follows target visibility
+        audio.play().then(() => audio.pause()).catch(() => {});
+      } else if (!quickLookHasAudio) {
+        audio.play().catch(() => {});
+      }
+    }
     if (effectiveCapability !== "ready") return; // preview only
     if (isTracked) {
       try {
@@ -182,10 +230,18 @@ export default function ARViewerShell({ experience }: { experience: Experience }
     const video = isTracked
       ? trackedRef.current?.getVideoEl()
       : planeRef.current?.getVideoEl();
-    if (!video) return;
-    video.muted = !video.muted;
-    if (!video.muted) video.play().catch(() => {});
-    setMuted(video.muted);
+    const audio = audioRef.current;
+    if (!video && !audio) return;
+    const next = !muted;
+    if (video) {
+      video.muted = next;
+      if (!next) video.play().catch(() => {});
+    }
+    if (audio) {
+      audio.muted = next;
+      if (!next && (!isTracked || targetVisible)) audio.play().catch(() => {});
+    }
+    setMuted(next);
   };
 
   const url = useMemo(() => shareUrl(experience.id), [experience.id]);
@@ -317,6 +373,7 @@ export default function ARViewerShell({ experience }: { experience: Experience }
               {experience.title}
             </div>
             {(experience.type === "video" ||
+              Boolean(experience.content.audioUrl) ||
               (isTracked && /\.(mp4|webm|mov)(\?|$)/i.test(experience.content.assetUrl ?? ""))) && (
               <button
                 onClick={toggleMute}

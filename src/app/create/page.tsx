@@ -121,7 +121,14 @@ export default function CreatePage() {
       if (type === "image" && finalContent.assetUrl && scene?.theme) {
         try {
           const { bakeThemedPosterAssets } = await import("@/lib/bake-theme-glb");
-          const { glb, usdz } = await bakeThemedPosterAssets(finalContent.assetUrl, scene);
+          const { glb, usdz } = await bakeThemedPosterAssets(
+            finalContent.assetUrl,
+            scene,
+            // Embed the soundtrack in the USDZ so Quick Look plays it natively
+            finalContent.audioUrl
+              ? { url: finalContent.audioUrl, loop: finalContent.audioLoop !== false }
+              : null
+          );
           const [glbUp, usdzUp] = await Promise.all([
             uploadFile(new File([glb], "themed-poster.glb"), "model"),
             uploadFile(new File([usdz], "themed-poster.usdz"), "usdz"),
@@ -558,6 +565,58 @@ export default function CreatePage() {
                     <p className="text-xs text-mist-600">{t.wizard.themeWebNote}</p>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Soundtrack — every type except video (the file has its own audio) */}
+            {type !== "video" && (
+              <div className="glass flex flex-col gap-4 p-4">
+                <span className="label !mb-0">{t.wizard.audioLabel}</span>
+                <UploadDropzone
+                  kind="audio"
+                  hint={t.wizard.audioHint}
+                  currentName={content.audioName}
+                  onUploaded={(f) =>
+                    setContent((c) => ({ ...c, audioUrl: f.url, audioName: f.originalName }))
+                  }
+                />
+                {content.audioUrl && (
+                  <>
+                    <audio
+                      controls
+                      src={content.audioUrl}
+                      preload="metadata"
+                      className="w-full"
+                    />
+                    <div className="flex flex-wrap items-center gap-4">
+                      <label className="flex cursor-pointer items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={content.audioLoop !== false}
+                          onChange={(e) =>
+                            setContent((c) => ({ ...c, audioLoop: e.target.checked }))
+                          }
+                          className="h-4 w-4 accent-teal-400"
+                        />
+                        {t.wizard.audioLoopLabel}
+                      </label>
+                      <button
+                        onClick={() =>
+                          setContent((c) => ({
+                            ...c,
+                            audioUrl: undefined,
+                            audioName: undefined,
+                            audioLoop: undefined,
+                          }))
+                        }
+                        className="btn btn-ghost text-xs"
+                      >
+                        {t.wizard.audioRemove}
+                      </button>
+                    </div>
+                  </>
+                )}
+                <p className="text-xs text-mist-600">{t.wizard.audioNote}</p>
               </div>
             )}
 
