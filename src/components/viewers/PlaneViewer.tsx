@@ -56,6 +56,15 @@ const PlaneViewer = forwardRef<
   const contentRef = useRef<THREE.Group | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const backdropRef = useRef<{ video: HTMLVideoElement; stream: MediaStream } | null>(null);
+  /** Device-orientation state for gyro-anchored backdrop mode */
+  const gyroRef = useRef<{
+    hasData: boolean;
+    placed: boolean;
+    alpha: number;
+    beta: number;
+    gamma: number;
+    listener: ((e: DeviceOrientationEvent) => void) | null;
+  }>({ hasData: false, placed: false, alpha: 0, beta: 0, gamma: 0, listener: null });
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
@@ -88,6 +97,21 @@ const PlaneViewer = forwardRef<
       const renderer = rendererRef.current;
       if (!mount || !renderer) return false;
       if (backdropRef.current) return true;
+
+      // iOS gyroscope permission must be requested inside the user gesture,
+      // BEFORE any await breaks the gesture chain.
+      let gyroAllowed = true;
+      const DOE = window.DeviceOrientationEvent as unknown as
+        | { requestPermission?: () => Promise<string> }
+        | undefined;
+      if (DOE?.requestPermission) {
+        try {
+          gyroAllowed = (await DOE.requestPermission()) === "granted";
+        } catch {
+          gyroAllowed = false;
+        }
+      }
+
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -96,6 +120,20 @@ const PlaneViewer = forwardRef<
         });
       } catch {
         return false;
+      }
+
+      // Gyro anchoring: content stays fixed in room direction as the phone
+      // rotates (translation isn't trackable without ARKit/WebXR).
+      if (gyroAllowed) {
+        const g = gyroRef.current;
+        g.listener = (e: DeviceOrientationEvent) => {
+          if (e.alpha == null || e.beta == null || e.gamma == null) return;
+          g.alpha = e.alpha;
+          g.beta = e.beta;
+          g.gamma = e.gamma;
+          g.hasData = true;
+        };
+        window.addEventListener("deviceorientation", g.listener);
       }
       const cam = document.createElement("video");
       cam.setAttribute("autoplay", "");
@@ -170,7 +208,24 @@ const PlaneViewer = forwardRef<
     renderer.setAnimationLoop(() => {
       const dt = clock.getDelta();
       const inXR = renderer.xr.isPresenting;
-      if (!inXR) {
+      const g = gyroRef.current;
+      if (backdropRef.current && g.hasData) {
+        // Gyro-anchored backdrop: the camera mirrors the phone's rotation,
+        // so the content keeps its direction in the real room.
+        setCameraFromGyro(camera, g.alpha, g.beta, g.gamma);
+        if (!g.placed) {
+          g.placed = true;
+          controls.enabled = false;
+          camera.position.set(0, 0, 0);
+          // Drop the content 1.6 m along the user's current gaze direction
+          const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+          dir.y = 0;
+          if (dir.lengthSq() < 1e-4) dir.set(0, 0, -1);
+          dir.normalize();
+          content.position.set(dir.x * 1.6, -0.2, dir.z * 1.6);
+          content.rotation.set(0, Math.atan2(dir.x, dir.z) + Math.PI, 0);
+        }
+      } else if (!inXR && !g.placed) {
         controls.update();
         // Gentle idle sway (±~17°) — never a full spin, so flat content
         // is never seen from behind (dark poster back / reversed text)
@@ -215,6 +270,9 @@ const PlaneViewer = forwardRef<
         backdropRef.current.video.remove();
         backdropRef.current = null;
       }
+      const g = gyroRef.current;
+      if (g.listener) window.removeEventListener("deviceorientation", g.listener);
+      gyroRef.current = { hasData: false, placed: false, alpha: 0, beta: 0, gamma: 0, listener: null };
       if (videoRef.current) {
         videoRef.current.pause();
         videoRef.current.src = "";
@@ -240,6 +298,31 @@ const PlaneViewer = forwardRef<
 });
 
 export default PlaneViewer;
+
+/* Device-orientation → camera quaternion (classic DeviceOrientationControls
+   math: ZXY device euler remapped to YXZ, corrected for screen rotation). */
+const GYRO_ZEE = new THREE.Vector3(0, 0, 1);
+const GYRO_EULER = new THREE.Euler();
+const GYRO_Q0 = new THREE.Quaternion();
+const GYRO_Q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+
+function setCameraFromGyro(
+  camera: THREE.PerspectiveCamera,
+  alphaDeg: number,
+  betaDeg: number,
+  gammaDeg: number
+) {
+  const alpha = THREE.MathUtils.degToRad(alphaDeg);
+  const beta = THREE.MathUtils.degToRad(betaDeg);
+  const gamma = THREE.MathUtils.degToRad(gammaDeg);
+  const orient = THREE.MathUtils.degToRad(
+    typeof screen !== "undefined" && screen.orientation ? screen.orientation.angle : 0
+  );
+  GYRO_EULER.set(beta, alpha, -gamma, "YXZ");
+  camera.quaternion.setFromEuler(GYRO_EULER);
+  camera.quaternion.multiply(GYRO_Q1);
+  camera.quaternion.multiply(GYRO_Q0.setFromAxisAngle(GYRO_ZEE, -orient));
+}
 
 function contentErrorMessage(exp: Experience): string {
   switch (exp.type) {
