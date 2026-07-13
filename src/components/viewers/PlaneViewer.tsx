@@ -18,6 +18,12 @@ import type { Experience } from "@/lib/types";
 export interface PlaneViewerHandle {
   /** Enter WebXR immersive-ar. Resolves false when unsupported/denied. */
   startAR(): Promise<boolean>;
+  /**
+   * AR-lite for browsers without WebXR (iOS Safari): live rear-camera feed
+   * behind the 3D scene. Content doesn't anchor to the world, but the user
+   * sees their room with the content and decorations overlaid.
+   */
+  startCameraBackdrop(): Promise<boolean>;
   /** The underlying <video> for video experiences (for the mute toggle) */
   getVideoEl(): HTMLVideoElement | null;
 }
@@ -49,6 +55,7 @@ const PlaneViewer = forwardRef<
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const contentRef = useRef<THREE.Group | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const backdropRef = useRef<{ video: HTMLVideoElement; stream: MediaStream } | null>(null);
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
@@ -75,6 +82,37 @@ const PlaneViewer = forwardRef<
       } catch {
         return false;
       }
+    },
+    async startCameraBackdrop() {
+      const mount = mountRef.current;
+      const renderer = rendererRef.current;
+      if (!mount || !renderer) return false;
+      if (backdropRef.current) return true;
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: "environment" },
+        });
+      } catch {
+        return false;
+      }
+      const cam = document.createElement("video");
+      cam.setAttribute("autoplay", "");
+      cam.setAttribute("muted", "");
+      cam.setAttribute("playsinline", "");
+      cam.style.cssText =
+        "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0";
+      cam.srcObject = stream;
+      // Canvas renders above the feed; its alpha background shows the camera
+      renderer.domElement.style.position = "absolute";
+      renderer.domElement.style.inset = "0";
+      renderer.domElement.style.zIndex = "1";
+      mount.insertBefore(cam, renderer.domElement);
+      cam.play().catch(() => {});
+      backdropRef.current = { video: cam, stream };
+      videoRef.current?.play().catch(() => {});
+      return true;
     },
     getVideoEl() {
       return videoRef.current;
@@ -172,6 +210,11 @@ const PlaneViewer = forwardRef<
       });
       renderer.dispose();
       renderer.domElement.remove();
+      if (backdropRef.current) {
+        backdropRef.current.stream.getTracks().forEach((t) => t.stop());
+        backdropRef.current.video.remove();
+        backdropRef.current = null;
+      }
       if (videoRef.current) {
         videoRef.current.pause();
         videoRef.current.src = "";
@@ -193,7 +236,7 @@ const PlaneViewer = forwardRef<
     JSON.stringify(experience.content.scene ?? null),
   ]);
 
-  return <div ref={mountRef} className="h-full w-full" />;
+  return <div ref={mountRef} className="relative h-full w-full overflow-hidden" />;
 });
 
 export default PlaneViewer;

@@ -66,6 +66,9 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   const planeRef = useRef<PlaneViewerHandle>(null);
   const trackedRef = useRef<TrackedViewerHandle>(null);
   const [targetVisible, setTargetVisible] = useState(false);
+  // How flat content enters AR: real WebXR, or the camera-backdrop AR-lite
+  // mode for browsers without WebXR (iOS Safari)
+  const [planeArMode, setPlaneArMode] = useState<"webxr" | "camera" | null>(null);
 
   // Image experiences with a generated poster GLB also go through
   // model-viewer: that unlocks native camera AR (Quick Look / Scene Viewer)
@@ -124,9 +127,22 @@ export default function ARViewerShell({ experience }: { experience: Experience }
       };
       tick();
     } else {
-      isImmersiveARSupported().then(
-        (ok) => !cancelled && setCapability(ok ? "ready" : "unsupported")
-      );
+      isImmersiveARSupported().then((ok) => {
+        if (cancelled) return;
+        if (ok) {
+          setPlaneArMode("webxr");
+          setCapability("ready");
+        } else if (
+          detectPlatform().mobile &&
+          typeof navigator.mediaDevices?.getUserMedia === "function"
+        ) {
+          // No WebXR (iOS Safari) — offer the camera-backdrop AR-lite mode
+          setPlaneArMode("camera");
+          setCapability("ready");
+        } else {
+          setCapability("unsupported");
+        }
+      });
     }
     return () => {
       cancelled = true;
@@ -146,6 +162,14 @@ export default function ARViewerShell({ experience }: { experience: Experience }
             ? t.viewer.cameraDenied
             : t.viewer.trackerFailed
         );
+      }
+      return;
+    }
+    if (!isModel && planeArMode === "camera") {
+      const ok = await planeRef.current?.startCameraBackdrop();
+      if (!ok) {
+        setStarted(false);
+        setError(t.viewer.cameraDenied);
       }
       return;
     }
@@ -310,13 +334,15 @@ export default function ARViewerShell({ experience }: { experience: Experience }
               </span>
             </div>
           )}
-          {effectiveCapability === "ready" && !isTracked && (
-            <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2">
-              <button onClick={onStartAR} className="btn btn-primary !rounded-full text-sm">
-                <ARGlyph /> {t.viewer.enterAR}
-              </button>
-            </div>
-          )}
+          {effectiveCapability === "ready" &&
+            !isTracked &&
+            !(planeArMode === "camera" && !isModel) && (
+              <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2">
+                <button onClick={onStartAR} className="btn btn-primary !rounded-full text-sm">
+                  <ARGlyph /> {t.viewer.enterAR}
+                </button>
+              </div>
+            )}
         </>
       )}
 
