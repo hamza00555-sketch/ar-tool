@@ -54,6 +54,7 @@ interface ExperienceRow {
     arModelUrl?: string;
     targetImageUrl?: string;
     mindUrl?: string;
+    scene?: Experience["content"]["scene"];
   };
   total_views: number;
   last_viewed_at: string | null;
@@ -84,6 +85,7 @@ function rowToExperience(row: ExperienceRow, events: ViewEvent[] = []): Experien
       arModelUrl: row.config?.arModelUrl,
       targetImageUrl: row.config?.targetImageUrl,
       mindUrl: row.config?.mindUrl,
+      scene: row.config?.scene,
       text: row.config?.text,
       textStyle: row.config?.textStyle,
     },
@@ -188,6 +190,7 @@ export class SupabaseStore implements ExperienceStore {
         arModelUrl: input.content?.arModelUrl,
         targetImageUrl: input.content?.targetImageUrl,
         mindUrl: input.content?.mindUrl,
+        scene: input.content?.scene,
       },
       status: input.status ?? "draft",
       ...inputToColumns(input),
@@ -224,6 +227,7 @@ export class SupabaseStore implements ExperienceStore {
         ...(c.arModelUrl !== undefined && { arModelUrl: c.arModelUrl }),
         ...(c.targetImageUrl !== undefined && { targetImageUrl: c.targetImageUrl }),
         ...(c.mindUrl !== undefined && { mindUrl: c.mindUrl }),
+        ...(c.scene !== undefined && { scene: c.scene }),
       };
     }
     cols.updated_at = new Date().toISOString();

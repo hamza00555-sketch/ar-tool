@@ -15,6 +15,29 @@ export interface TextStyle {
   finish: "matte" | "metal" | "neon";
 }
 
+/** Decoration themes — start with birthday; more get added over time. */
+export type SceneTheme = "birthday";
+
+export const SCENE_THEMES: SceneTheme[] = ["birthday"];
+
+export type BannerAnimation = "float" | "pulse" | "spin" | "none";
+
+/**
+ * Optional themed decorations rendered around the main content in the
+ * browser viewers (3D preview, WebXR, image tracking). Native hand-off
+ * viewers (Scene Viewer / Quick Look) can only show the model file itself,
+ * so themed experiences stay in the web viewer for consistency.
+ */
+export interface SceneConfig {
+  theme?: SceneTheme | "";
+  /** Custom banner text shown above the content (Arabic shaping supported) */
+  bannerText?: string;
+  bannerColor?: string;
+  bannerAnimation?: BannerAnimation;
+  balloons?: boolean;
+  confetti?: boolean;
+}
+
 export interface ExperienceContent {
   /** URL of the primary asset (.glb/.gltf, image, or video). Empty for `text`. */
   assetUrl?: string;
@@ -31,6 +54,8 @@ export interface ExperienceContent {
   targetImageUrl?: string;
   /** `tracked` experiences: compiled MindAR feature file (.mind) */
   mindUrl?: string;
+  /** Themed decorations (banner text, balloons, confetti, …) */
+  scene?: SceneConfig;
   /** The text to render for `text` experiences */
   text?: string;
   textStyle?: TextStyle;

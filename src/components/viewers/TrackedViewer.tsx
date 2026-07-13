@@ -8,6 +8,7 @@ import {
 } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { buildDecorations } from "@/lib/scene-decorations";
 import type { Experience } from "@/lib/types";
 
 export interface TrackedViewerHandle {
@@ -200,6 +201,10 @@ const TrackedViewer = forwardRef<
       onErrorRef.current?.("content")
     );
 
+    // Themed decorations ride the anchor: they stick to the tracked image too
+    const deco = buildDecorations(experience.content.scene);
+    if (deco) anchor.add(deco.group);
+
     resize();
     window.addEventListener("resize", resize);
 
@@ -207,6 +212,7 @@ const TrackedViewer = forwardRef<
     renderer.setAnimationLoop(() => {
       const dt = clock.getDelta();
       mixers.forEach((m) => m.update(dt));
+      deco?.update(dt);
       renderer.render(scene, camera);
     });
 

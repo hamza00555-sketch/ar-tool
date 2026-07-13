@@ -13,12 +13,16 @@ import {
   SAMPLE_MODEL_URL,
   TEMPLATE_PRESETS,
   type ARContentType,
+  type BannerAnimation,
   type ExperienceContent,
+  type SceneConfig,
   type TextStyle,
 } from "@/lib/types";
 
 const CONTENT_TYPES: ARContentType[] = ["model", "image", "video", "text", "tracked"];
 type OverlayKind = "model" | "video" | "image";
+const SCENE_COLORS = ["#ffc94d", "#7ef4dc", "#a48bfa", "#ff7d94", "#f2f5fb"];
+const BANNER_ANIMS: BannerAnimation[] = ["float", "pulse", "spin", "none"];
 const TEXT_COLORS = ["#7ef4dc", "#a48bfa", "#ffb26b", "#f2f5fb", "#ff7d94"];
 const TEXT_FINISHES: TextStyle["finish"][] = ["metal", "matte", "neon"];
 
@@ -50,6 +54,27 @@ export default function CreatePage() {
       return Boolean(content.targetImageUrl && content.mindUrl && content.assetUrl);
     return Boolean(content.assetUrl);
   }, [type, content]);
+
+  const scene = content.scene;
+  const patchScene = (patch: Partial<SceneConfig>) =>
+    setContent((c) => ({ ...c, scene: { ...c.scene, ...patch } }));
+  const pickTheme = (theme: "" | "birthday") => {
+    if (theme === "") {
+      setContent((c) => ({ ...c, scene: undefined }));
+      return;
+    }
+    setContent((c) => ({
+      ...c,
+      scene: {
+        theme,
+        bannerText: c.scene?.bannerText ?? t.wizard.bannerDefault,
+        bannerColor: c.scene?.bannerColor ?? "#ffc94d",
+        bannerAnimation: c.scene?.bannerAnimation ?? "float",
+        balloons: c.scene?.balloons ?? true,
+        confetti: c.scene?.confetti ?? true,
+      },
+    }));
+  };
 
   /** Target image uploaded → analyze its features in-browser, store the .mind file */
   const onTargetUploaded = async (f: { url: string; originalName: string }) => {
@@ -426,6 +451,94 @@ export default function CreatePage() {
                     </button>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Theme & decorations — browser-rendered types only */}
+            {type !== "model" && (
+              <div className="glass flex flex-col gap-4 p-4">
+                <span className="label !mb-0">{t.wizard.sceneLabel}</span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => pickTheme("")}
+                    className={`btn text-xs ${!scene?.theme ? "btn-primary" : "btn-ghost"}`}
+                  >
+                    {t.wizard.themeNone}
+                  </button>
+                  <button
+                    onClick={() => pickTheme("birthday")}
+                    className={`btn text-xs ${scene?.theme === "birthday" ? "btn-primary" : "btn-ghost"}`}
+                  >
+                    {t.wizard.themeBirthday}
+                  </button>
+                </div>
+
+                {scene?.theme === "birthday" && (
+                  <>
+                    <div>
+                      <span className="label">{t.wizard.bannerTextLabel}</span>
+                      <input
+                        className="field"
+                        maxLength={40}
+                        value={scene.bannerText ?? ""}
+                        onChange={(e) => patchScene({ bannerText: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <span className="label">{t.wizard.bannerColorLabel}</span>
+                      <div className="flex gap-2">
+                        {SCENE_COLORS.map((c) => (
+                          <button
+                            key={c}
+                            onClick={() => patchScene({ bannerColor: c })}
+                            className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                              scene.bannerColor === c ? "border-white" : "border-transparent"
+                            }`}
+                            style={{ backgroundColor: c }}
+                            aria-label={c}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="label">{t.wizard.bannerAnimLabel}</span>
+                      <div className="flex flex-wrap gap-2">
+                        {BANNER_ANIMS.map((a) => (
+                          <button
+                            key={a}
+                            onClick={() => patchScene({ bannerAnimation: a })}
+                            className={`btn text-xs ${
+                              (scene.bannerAnimation ?? "float") === a ? "btn-primary" : "btn-ghost"
+                            }`}
+                          >
+                            {t.wizard.anims[a]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-4">
+                      <label className="flex cursor-pointer items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={scene.balloons !== false}
+                          onChange={(e) => patchScene({ balloons: e.target.checked })}
+                          className="h-4 w-4 accent-teal-400"
+                        />
+                        {t.wizard.balloonsLabel}
+                      </label>
+                      <label className="flex cursor-pointer items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={scene.confetti !== false}
+                          onChange={(e) => patchScene({ confetti: e.target.checked })}
+                          className="h-4 w-4 accent-teal-400"
+                        />
+                        {t.wizard.confettiLabel}
+                      </label>
+                    </div>
+                    <p className="text-xs text-mist-600">{t.wizard.themeWebNote}</p>
+                  </>
+                )}
               </div>
             )}
 

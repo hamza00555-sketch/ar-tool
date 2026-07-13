@@ -11,6 +11,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
+import { buildDecorations } from "@/lib/scene-decorations";
 import type { Experience } from "@/lib/types";
 
 export interface PlaneViewerHandle {
@@ -121,14 +122,20 @@ const PlaneViewer = forwardRef<
       onErrorRef.current?.(contentErrorMessage(experience))
     );
 
+    // Themed decorations (banner / balloons / confetti) around the content
+    const deco = buildDecorations(experience.content.scene);
+    if (deco) content.add(deco.group);
+
     const clock = new THREE.Clock();
     renderer.setAnimationLoop(() => {
+      const dt = clock.getDelta();
       const inXR = renderer.xr.isPresenting;
       if (!inXR) {
         controls.update();
         // Gentle idle float in preview mode
-        content.rotation.y += clock.getDelta() * 0.12;
+        content.rotation.y += dt * 0.12;
       }
+      deco?.update(dt);
       renderer.render(scene, camera);
     });
 
@@ -178,6 +185,8 @@ const PlaneViewer = forwardRef<
     experience.content.text,
     experience.content.textStyle?.color,
     experience.content.textStyle?.finish,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    JSON.stringify(experience.content.scene ?? null),
   ]);
 
   return <div ref={mountRef} className="h-full w-full" />;
