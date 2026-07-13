@@ -136,3 +136,20 @@ export const TEMPLATE_PRESETS: TemplatePreset[] = [
 /** Bundled sample assets so the flow is testable before any upload */
 export const SAMPLE_MODEL_URL = "/samples/aurora-knot.glb";
 export const SAMPLE_MODEL_NAME = "aurora-knot.glb (sample)";
+
+/**
+ * Bundled soundtrack presets (synthesized in-house, no licensing issues).
+ * Display names live in the i18n dictionary under `wizard.audioPresets`,
+ * keyed by these ids.
+ */
+export interface SoundPreset {
+  id: string;
+  url: string;
+}
+
+export const SOUND_PRESETS: SoundPreset[] = [
+  { id: "birthday", url: "/sounds/birthday.wav" },
+  { id: "applause", url: "/sounds/applause.wav" },
+  { id: "horn", url: "/sounds/party-horn.wav" },
+  { id: "chime", url: "/sounds/chime.wav" },
+];

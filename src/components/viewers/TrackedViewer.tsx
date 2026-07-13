@@ -93,7 +93,9 @@ const TrackedViewer = forwardRef<
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera();
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // 1.5 (not 2): the feature matcher shares the GPU — every bit of render
+    // headroom goes straight into tracking stability
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.domElement.style.cssText = "position:absolute;top:0;left:0;z-index:1";
     container.appendChild(renderer.domElement);
 
@@ -206,7 +208,8 @@ const TrackedViewer = forwardRef<
 
     /* ---- content ---- */
     const mixers: THREE.AnimationMixer[] = [];
-    buildOverlay(assetUrl, targetAspect, anchor, videoRef, mixers, () =>
+    const updaters: Array<() => void> = [];
+    buildOverlay(assetUrl, targetAspect, anchor, videoRef, mixers, updaters, () =>
       onErrorRef.current?.("content")
     );
 
@@ -221,6 +224,7 @@ const TrackedViewer = forwardRef<
     renderer.setAnimationLoop(() => {
       const dt = clock.getDelta();
       mixers.forEach((m) => m.update(dt));
+      updaters.forEach((u) => u());
       deco?.update(dt);
       renderer.render(scene, camera);
     });
@@ -274,6 +278,7 @@ function buildOverlay(
   anchor: THREE.Group,
   videoRef: React.MutableRefObject<HTMLVideoElement | null>,
   mixers: THREE.AnimationMixer[],
+  updaters: Array<() => void>,
   onError: () => void
 ) {
   const ext = (assetUrl.split(".").pop() ?? "").toLowerCase().split("?")[0];
@@ -322,8 +327,36 @@ function buildOverlay(
     video.setAttribute("aria-hidden", "true");
     document.body.appendChild(video);
     videoRef.current = video;
-    const tex = new THREE.VideoTexture(video);
+    // NOT a VideoTexture: uploading full-resolution video frames to the GPU
+    // on every render starves the feature matcher and wrecks tracking.
+    // Instead the frame is downscaled onto a small canvas at ≤24 fps and
+    // uploaded from there — a fraction of the bandwidth, no mipmap rebuilds.
+    const frameCanvas = document.createElement("canvas");
+    frameCanvas.width = 2;
+    frameCanvas.height = 2;
+    let frameSized = false;
+    const frameCtx = frameCanvas.getContext("2d")!;
+    const tex = new THREE.CanvasTexture(frameCanvas);
     tex.colorSpace = THREE.SRGBColorSpace;
+    tex.generateMipmaps = false;
+    tex.minFilter = THREE.LinearFilter;
+    const MAX_SIDE = 640;
+    const FRAME_MS = 1000 / 24;
+    let lastDraw = 0;
+    updaters.push(() => {
+      if (video.paused || video.readyState < 2 || !video.videoWidth) return;
+      const now = performance.now();
+      if (now - lastDraw < FRAME_MS) return;
+      lastDraw = now;
+      if (!frameSized) {
+        frameSized = true;
+        const scale = Math.min(1, MAX_SIDE / Math.max(video.videoWidth, video.videoHeight));
+        frameCanvas.width = Math.max(2, Math.round(video.videoWidth * scale));
+        frameCanvas.height = Math.max(2, Math.round(video.videoHeight * scale));
+      }
+      frameCtx.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
+      tex.needsUpdate = true;
+    });
     const plane = new THREE.Mesh(
       new THREE.PlaneGeometry(1, targetAspect),
       new THREE.MeshBasicMaterial({ map: tex, toneMapped: false })

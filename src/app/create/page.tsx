@@ -11,6 +11,7 @@ import { useI18n } from "@/lib/i18n";
 import {
   SAMPLE_MODEL_NAME,
   SAMPLE_MODEL_URL,
+  SOUND_PRESETS,
   TEMPLATE_PRESETS,
   type ARContentType,
   type BannerAnimation,
@@ -573,14 +574,39 @@ export default function CreatePage() {
             {type !== "video" && (
               <div className="glass flex flex-col gap-4 p-4">
                 <span className="label !mb-0">{t.wizard.audioLabel}</span>
-                <UploadDropzone
-                  kind="audio"
-                  hint={t.wizard.audioHint}
-                  currentName={content.audioName}
-                  onUploaded={(f) =>
-                    setContent((c) => ({ ...c, audioUrl: f.url, audioName: f.originalName }))
-                  }
-                />
+                <div>
+                  <span className="label">{t.wizard.audioPresetsLabel}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {SOUND_PRESETS.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() =>
+                          setContent((c) => ({
+                            ...c,
+                            audioUrl: p.url,
+                            audioName: t.wizard.audioPresets[p.id],
+                          }))
+                        }
+                        className={`btn text-xs ${
+                          content.audioUrl === p.url ? "btn-primary" : "btn-ghost"
+                        }`}
+                      >
+                        {t.wizard.audioPresets[p.id]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="label">{t.wizard.audioOrUpload}</span>
+                  <UploadDropzone
+                    kind="audio"
+                    hint={t.wizard.audioHint}
+                    currentName={content.audioName}
+                    onUploaded={(f) =>
+                      setContent((c) => ({ ...c, audioUrl: f.url, audioName: f.originalName }))
+                    }
+                  />
+                </div>
                 {content.audioUrl && (
                   <>
                     <audio

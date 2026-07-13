@@ -191,6 +191,14 @@ const en = {
       "Decorations show in the browser viewer (preview, WebXR, image tracking) — native iOS/Android model hand-off shows the model only.",
     audioLabel: "Soundtrack (optional)",
     audioHint: ".mp3 .m4a .wav, up to 50 MB",
+    audioPresetsLabel: "Ready-made sounds",
+    audioPresets: {
+      birthday: "🎂 Birthday tune",
+      applause: "👏 Applause",
+      horn: "🎉 Party horn",
+      chime: "✨ Sparkle chime",
+    } as Record<string, string>,
+    audioOrUpload: "…or upload your own sound",
     audioLoopLabel: "Loop the sound",
     audioRemove: "Remove sound",
     audioNote:
@@ -420,6 +428,14 @@ const ar: Dict = {
       "الزينة تظهر في عارض المتصفح (المعاينة، WebXR، تتبع الصور) — العارض الأصلي للمجسّمات على iOS/أندرويد يعرض المجسّم فقط.",
     audioLabel: "صوت مصاحب (اختياري)",
     audioHint: "ملفات .mp3 .m4a .wav، حتى 50 م.ب",
+    audioPresetsLabel: "أصوات جاهزة",
+    audioPresets: {
+      birthday: "🎂 لحن عيد ميلاد",
+      applause: "👏 تصفيق",
+      horn: "🎉 بوق حفلة",
+      chime: "✨ نغمة تألّق",
+    } as Record<string, string>,
+    audioOrUpload: "…أو ارفع صوتك الخاص",
     audioLoopLabel: "تكرار الصوت",
     audioRemove: "إزالة الصوت",
     audioNote:
