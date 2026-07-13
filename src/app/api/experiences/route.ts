@@ -34,7 +34,8 @@ export async function POST(req: NextRequest) {
     }
     // Image experiences get a poster-plane GLB so phones can open camera AR
     // (Quick Look / Scene Viewer) — iOS Safari has no WebXR for flat content.
-    if (body.type === "image" && body.content?.assetUrl) {
+    // Skipped when the client already baked one (themed posters).
+    if (body.type === "image" && body.content?.assetUrl && !body.content.arModelUrl) {
       const arModelUrl = await generateImageArModel(body.content.assetUrl);
       if (arModelUrl) body.content.arModelUrl = arModelUrl;
     }

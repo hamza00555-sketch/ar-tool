@@ -31,7 +31,8 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
     // Regenerate the poster GLB when an image experience's picture changes
-    if (patch.content?.assetUrl) {
+    // (unless the client provided a baked themed GLB itself)
+    if (patch.content?.assetUrl && !patch.content.arModelUrl) {
       const current = await getStore().get(id);
       if ((patch.type ?? current?.type) === "image") {
         const arModelUrl = await generateImageArModel(patch.content.assetUrl);

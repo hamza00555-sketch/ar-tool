@@ -114,13 +114,27 @@ export default function CreatePage() {
     setSaving(true);
     setError(null);
     try {
+      const finalContent = type === "text" ? { ...content, textStyle } : { ...content };
+      // Themed posters get baked into a single GLB so they ride the native
+      // AR pipeline (Quick Look / Scene Viewer) with REAL world tracking,
+      // decorations included. Non-fatal: without it the web viewer handles it.
+      if (type === "image" && finalContent.assetUrl && scene?.theme) {
+        try {
+          const { bakeThemedPosterGlb } = await import("@/lib/bake-theme-glb");
+          const glb = await bakeThemedPosterGlb(finalContent.assetUrl, scene);
+          const up = await uploadFile(new File([glb], "themed-poster.glb"), "model");
+          finalContent.arModelUrl = up.url;
+        } catch (e) {
+          console.error("theme bake failed", e);
+        }
+      }
       const exp = await createExperience({
         title: title || t.types[type].label,
         description,
         type,
         status: publishNow ? "published" : "draft",
         thumbnail,
-        content: type === "text" ? { ...content, textStyle } : content,
+        content: finalContent,
       });
       router.push(`/experience/${exp.id}?created=1`);
     } catch (e) {

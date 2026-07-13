@@ -74,12 +74,11 @@ export default function ARViewerShell({ experience }: { experience: Experience }
   // model-viewer: that unlocks native camera AR (Quick Look / Scene Viewer)
   // on phones, where WebXR isn't available for flat content.
   const isTracked = experience.type === "tracked";
-  // Themed image experiences stay in the web viewer (decorations can't ride
-  // along into native Scene Viewer / Quick Look hand-offs).
-  const hasTheme = Boolean(experience.content.scene?.theme);
+  // Image experiences with a generated GLB (plain poster or fully baked
+  // themed scene) ride the native AR pipeline — real world tracking.
   const isModel =
     experience.type === "model" ||
-    (experience.type === "image" && Boolean(experience.content.arModelUrl) && !hasTheme);
+    (experience.type === "image" && Boolean(experience.content.arModelUrl));
   const modelSrc =
     experience.type === "model"
       ? experience.content.assetUrl
