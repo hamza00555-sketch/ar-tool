@@ -44,12 +44,21 @@ export default function DashboardPage() {
             {t.dashboard.headlinePre}{" "}
             <span className="text-aurora">{t.dashboard.headlineAccent}</span>
           </h1>
-          <Link href="/create" className="btn btn-primary">
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            {t.dashboard.newExperience}
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/scan" className="btn btn-ghost">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              {t.scan.navCta}
+            </Link>
+            <Link href="/create" className="btn btn-primary">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              {t.dashboard.newExperience}
+            </Link>
+          </div>
         </div>
 
         {experiences && experiences.length > 0 && (

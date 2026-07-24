@@ -10,17 +10,19 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
-import type { ExperienceStore } from "./store";
+import type { ExperienceStore, ScanResult } from "./store";
 import { seedExperience, stripAnalytics } from "./store";
 import type {
   Experience,
   ExperienceInput,
   ExperienceWithStats,
+  ScanJob,
   ViewEvent,
 } from "./types";
 
 interface DBShape {
   experiences: ExperienceWithStats[];
+  scanJobs?: ScanJob[];
 }
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -168,6 +170,78 @@ export class JsonFileStore implements ExperienceStore {
       }
       await this.persist(db);
       return true;
+    });
+  }
+
+  /* --------------------------------- scans -------------------------------- */
+
+  createScanJob(input: { title: string; frameUrls: string[] }): Promise<ScanJob> {
+    return this.enqueue(async () => {
+      const db = await this.load();
+      db.scanJobs ??= [];
+      const now = new Date().toISOString();
+      const job: ScanJob = {
+        id: nanoid(10),
+        status: "queued",
+        title: input.title.trim() || "3D scan",
+        frameUrls: input.frameUrls,
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.scanJobs.push(job);
+      await this.persist(db);
+      return job;
+    });
+  }
+
+  getScanJob(id: string): Promise<ScanJob | null> {
+    return this.enqueue(async () => {
+      const db = await this.load();
+      return db.scanJobs?.find((j) => j.id === id) ?? null;
+    });
+  }
+
+  claimScanJob(): Promise<ScanJob | null> {
+    return this.enqueue(async () => {
+      const db = await this.load();
+      const job = (db.scanJobs ?? [])
+        .filter((j) => j.status === "queued")
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
+      if (!job) return null;
+      job.status = "processing";
+      job.updatedAt = new Date().toISOString();
+      await this.persist(db);
+      return job;
+    });
+  }
+
+  completeScanJob(id: string, result: ScanResult): Promise<ScanJob | null> {
+    return this.enqueue(async () => {
+      const db = await this.load();
+      const job = db.scanJobs?.find((j) => j.id === id);
+      if (!job) return null;
+      job.status = "ready";
+      job.resultGlbUrl = result.resultGlbUrl;
+      job.resultUsdzUrl = result.resultUsdzUrl;
+      job.thumbnailUrl = result.thumbnailUrl;
+      job.experienceId = result.experienceId;
+      job.error = undefined;
+      job.updatedAt = new Date().toISOString();
+      await this.persist(db);
+      return job;
+    });
+  }
+
+  failScanJob(id: string, message: string): Promise<ScanJob | null> {
+    return this.enqueue(async () => {
+      const db = await this.load();
+      const job = db.scanJobs?.find((j) => j.id === id);
+      if (!job) return null;
+      job.status = "failed";
+      job.error = message;
+      job.updatedAt = new Date().toISOString();
+      await this.persist(db);
+      return job;
     });
   }
 }

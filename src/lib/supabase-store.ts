@@ -12,12 +12,13 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 import type { SupabaseConfig } from "./env";
-import type { ExperienceStore } from "./store";
+import type { ExperienceStore, ScanResult } from "./store";
 import type {
   ARContentType,
   Experience,
   ExperienceInput,
   ExperienceWithStats,
+  ScanJob,
   ViewEvent,
 } from "./types";
 
@@ -72,6 +73,36 @@ interface ScanRow {
   browser: string;
   referrer: string;
   created_at: string;
+}
+
+interface ScanJobRow {
+  id: string;
+  status: ScanJob["status"];
+  title: string;
+  frame_urls: string[];
+  result_glb_url: string | null;
+  result_usdz_url: string | null;
+  thumbnail_url: string | null;
+  error: string | null;
+  experience_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function rowToScanJob(r: ScanJobRow): ScanJob {
+  return {
+    id: r.id,
+    status: r.status,
+    title: r.title,
+    frameUrls: Array.isArray(r.frame_urls) ? r.frame_urls : [],
+    resultGlbUrl: r.result_glb_url ?? undefined,
+    resultUsdzUrl: r.result_usdz_url ?? undefined,
+    thumbnailUrl: r.thumbnail_url ?? undefined,
+    error: r.error ?? undefined,
+    experienceId: r.experience_id ?? undefined,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
 }
 
 function rowToExperience(row: ExperienceRow, events: ViewEvent[] = []): ExperienceWithStats {
@@ -284,6 +315,71 @@ export class SupabaseStore implements ExperienceStore {
     });
     if (error) throw dbError("record the scan", error.message);
     return data === true;
+  }
+
+  /* --------------------------------- scans -------------------------------- */
+
+  async createScanJob(input: { title: string; frameUrls: string[] }): Promise<ScanJob> {
+    const { data, error } = await this.client
+      .from("scan_jobs")
+      .insert({
+        id: nanoid(10),
+        title: input.title.trim() || "3D scan",
+        frame_urls: input.frameUrls,
+        status: "queued",
+      })
+      .select()
+      .single();
+    if (error) throw dbError("create the scan job", error.message);
+    return rowToScanJob(data as ScanJobRow);
+  }
+
+  async getScanJob(id: string): Promise<ScanJob | null> {
+    const { data, error } = await this.client
+      .from("scan_jobs")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw dbError("load the scan job", error.message);
+    return data ? rowToScanJob(data as ScanJobRow) : null;
+  }
+
+  async claimScanJob(): Promise<ScanJob | null> {
+    // SECURITY DEFINER function picks the oldest queued job with SKIP LOCKED
+    const { data, error } = await this.client.rpc("claim_scan_job");
+    if (error) throw dbError("claim a scan job", error.message);
+    const rows = data as ScanJobRow[];
+    return rows && rows.length ? rowToScanJob(rows[0]) : null;
+  }
+
+  async completeScanJob(id: string, result: ScanResult): Promise<ScanJob | null> {
+    const { data, error } = await this.client
+      .from("scan_jobs")
+      .update({
+        status: "ready",
+        result_glb_url: result.resultGlbUrl,
+        result_usdz_url: result.resultUsdzUrl ?? null,
+        thumbnail_url: result.thumbnailUrl ?? null,
+        experience_id: result.experienceId ?? null,
+        error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw dbError("finish the scan job", error.message);
+    return data ? rowToScanJob(data as ScanJobRow) : null;
+  }
+
+  async failScanJob(id: string, message: string): Promise<ScanJob | null> {
+    const { data, error } = await this.client
+      .from("scan_jobs")
+      .update({ status: "failed", error: message, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .maybeSingle();
+    if (error) throw dbError("mark the scan job failed", error.message);
+    return data ? rowToScanJob(data as ScanJobRow) : null;
   }
 
   /** Server-side upload for generated assets (poster GLBs — small files only). */

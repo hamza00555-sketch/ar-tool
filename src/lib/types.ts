@@ -85,6 +85,43 @@ export interface Experience {
   updatedAt: string;
 }
 
+/* --------------------------------- 3D scan -------------------------------- */
+
+export type ScanStatus = "queued" | "processing" | "ready" | "failed";
+
+/**
+ * A photogrammetry job: the browser captures frames of a real object, a
+ * self-hosted reconstruction worker turns them into a GLB, and on success
+ * the app creates a `model` experience from the result.
+ */
+export interface ScanJob {
+  id: string;
+  status: ScanStatus;
+  title: string;
+  frameUrls: string[];
+  resultGlbUrl?: string;
+  resultUsdzUrl?: string;
+  thumbnailUrl?: string;
+  error?: string;
+  /** the model experience created once the scan is ready */
+  experienceId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Payload the worker sends when it claims a job (frames + where to upload results). */
+export interface ScanClaim {
+  id: string;
+  title: string;
+  frameUrls: string[];
+  /** Signed URLs the worker PUTs the reconstruction outputs to */
+  upload: {
+    glb: { uploadUrl: string; publicUrl: string; contentType: string };
+    usdz: { uploadUrl: string; publicUrl: string; contentType: string };
+    thumbnail: { uploadUrl: string; publicUrl: string; contentType: string };
+  };
+}
+
 export interface ViewEvent {
   at: string;
   device: "phone" | "tablet" | "desktop" | "other";

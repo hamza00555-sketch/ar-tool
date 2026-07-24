@@ -286,6 +286,42 @@ const en = {
       "Camera access was denied — allow the camera for this site in your browser settings, then reload.",
     trackerFailed: "The image tracker couldn’t start on this device.",
   },
+  scan: {
+    navCta: "3D Scan",
+    title: "Scan a real object",
+    intro:
+      "Slowly circle the object while the camera captures photos from every angle. We turn them into a 3D model you can place in AR.",
+    startCamera: "Start camera",
+    cameraDenied: "Camera access is required to scan. Allow it, then try again.",
+    autoCapture: "Auto-capture",
+    shutter: "Capture photo",
+    frames: (n: number, target: number) => `${n} / ${target} photos`,
+    minHint: (n: number) => `Capture at least ${n} photos, all the way around the object.`,
+    tips: [
+      "Bright, even lighting — avoid harsh shadows",
+      "Fill the frame with the object and keep it centered",
+      "Move slowly in a full circle; add a higher and lower ring too",
+      "Matte objects scan best — shiny, transparent, or plain surfaces struggle",
+    ],
+    build: "Build 3D model",
+    retake: "Start over",
+    uploading: (n: number, total: number) => `Uploading photos… ${n}/${total}`,
+    creating: "Starting reconstruction…",
+    tooFew: (n: number) => `Capture at least ${n} photos first.`,
+    failedCreate: "Couldn’t start the scan. Try again.",
+    processingTitle: "Building your 3D model",
+    processingBody:
+      "Your photos were sent to the reconstruction worker. This usually takes a few minutes.",
+    statusQueued: "Waiting for a worker to pick this up…",
+    statusProcessing: "Reconstructing the 3D model…",
+    statusReady: "Your 3D model is ready!",
+    statusFailed: "Reconstruction failed",
+    openExperience: "Open the experience",
+    scanAgain: "Scan another object",
+    workerOfflineNote:
+      "Still waiting? Scans are built by your self-hosted reconstruction worker — make sure it’s running (see the worker/ folder and SETUP.md).",
+    notFound: "This scan job doesn’t exist.",
+  },
 };
 
 export type Dict = typeof en;
@@ -517,6 +553,41 @@ const ar: Dict = {
     cameraDenied:
       "تم رفض إذن الكاميرا — اسمح بالكاميرا لهذا الموقع من إعدادات المتصفح ثم أعد تحميل الصفحة.",
     trackerFailed: "تعذّر تشغيل متتبع الصور على هذا الجهاز.",
+  },
+  scan: {
+    navCta: "مسح ثلاثي الأبعاد",
+    title: "امسح جسماً حقيقياً",
+    intro:
+      "لُفّ حول الجسم ببطء بينما تلتقط الكاميرا صوراً من كل زاوية. نحوّلها إلى مجسّم ثلاثي الأبعاد يمكنك عرضه في الواقع المعزّز.",
+    startCamera: "تشغيل الكاميرا",
+    cameraDenied: "المسح يحتاج إذن الكاميرا. اسمح به ثم حاول مجدداً.",
+    autoCapture: "التقاط تلقائي",
+    shutter: "التقاط صورة",
+    frames: (n: number, target: number) => `${n} / ${target} صورة`,
+    minHint: (n: number) => `التقط ${n} صورة على الأقل، وأنت تدور حول الجسم بالكامل.`,
+    tips: [
+      "إضاءة ساطعة ومتساوية — تجنّب الظلال الحادة",
+      "املأ الإطار بالجسم وأبقِه في المنتصف",
+      "تحرّك ببطء في دائرة كاملة؛ أضف حلقة أعلى وأخرى أسفل",
+      "الأجسام المطفية تُمسح أفضل — اللامعة والشفافة والسادة صعبة",
+    ],
+    build: "بناء المجسّم",
+    retake: "إعادة من البداية",
+    uploading: (n: number, total: number) => `رفع الصور… ${n}/${total}`,
+    creating: "بدء إعادة البناء…",
+    tooFew: (n: number) => `التقط ${n} صورة على الأقل أولاً.`,
+    failedCreate: "تعذّر بدء المسح. حاول مجدداً.",
+    processingTitle: "جارٍ بناء المجسّم",
+    processingBody: "أُرسلت صورك إلى عامل إعادة البناء. تستغرق العملية عادةً بضع دقائق.",
+    statusQueued: "في انتظار عامل ليلتقط المهمة…",
+    statusProcessing: "جارٍ إعادة بناء المجسّم…",
+    statusReady: "مجسّمك جاهز!",
+    statusFailed: "فشلت إعادة البناء",
+    openExperience: "افتح التجربة",
+    scanAgain: "امسح جسماً آخر",
+    workerOfflineNote:
+      "ما زال ينتظر؟ تُبنى عمليات المسح بواسطة عامل إعادة البناء ذاتي الاستضافة — تأكد أنه يعمل (راجع مجلد worker/ وملف SETUP.md).",
+    notFound: "مهمة المسح هذه غير موجودة.",
   },
 };
 

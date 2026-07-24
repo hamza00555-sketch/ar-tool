@@ -13,9 +13,18 @@ import type {
   Experience,
   ExperienceInput,
   ExperienceWithStats,
+  ScanJob,
   ViewEvent,
 } from "./types";
 import { SAMPLE_MODEL_NAME, SAMPLE_MODEL_URL } from "./types";
+
+/** Result the reconstruction worker reports for a finished scan. */
+export interface ScanResult {
+  resultGlbUrl: string;
+  resultUsdzUrl?: string;
+  thumbnailUrl?: string;
+  experienceId?: string;
+}
 
 export interface ExperienceStore {
   list(): Promise<ExperienceWithStats[]>;
@@ -24,6 +33,14 @@ export interface ExperienceStore {
   update(id: string, patch: Partial<ExperienceInput>): Promise<Experience | null>;
   remove(id: string): Promise<boolean>;
   trackView(id: string, event: ViewEvent): Promise<boolean>;
+
+  /* 3D scan jobs */
+  createScanJob(input: { title: string; frameUrls: string[] }): Promise<ScanJob>;
+  getScanJob(id: string): Promise<ScanJob | null>;
+  /** Atomically hand the oldest queued job to a worker (marks it processing). */
+  claimScanJob(): Promise<ScanJob | null>;
+  completeScanJob(id: string, result: ScanResult): Promise<ScanJob | null>;
+  failScanJob(id: string, error: string): Promise<ScanJob | null>;
 }
 
 export function stripAnalytics(exp: ExperienceWithStats): Experience {

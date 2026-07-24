@@ -50,3 +50,13 @@ export function getSupabaseConfig(): SupabaseConfig | null {
 export function storageMode(): "supabase" | "local" {
   return getSupabaseConfig() ? "supabase" : "local";
 }
+
+/**
+ * Shared secret the self-hosted reconstruction worker authenticates with.
+ * Set WORKER_TOKEN in the app's env AND give the same value to the worker.
+ * When unset, the scan worker API is disabled (returns 503), so scans queue
+ * but never get claimed — the capture flow still works for testing.
+ */
+export function getWorkerToken(): string | null {
+  return process.env.WORKER_TOKEN?.trim() || null;
+}

@@ -3,6 +3,7 @@ import type {
   Experience,
   ExperienceInput,
   ExperienceWithStats,
+  ScanJob,
 } from "./types";
 
 async function handle<T>(res: Response): Promise<T> {
@@ -102,6 +103,24 @@ export async function getStorageMode(): Promise<"supabase" | "local"> {
   } catch {
     return "local";
   }
+}
+
+/** Create a 3D-scan job from already-uploaded frame URLs. */
+export async function createScanJob(
+  title: string,
+  frameUrls: string[]
+): Promise<ScanJob> {
+  const res = await fetch("/api/scan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, frameUrls }),
+  });
+  return (await handle<{ job: ScanJob }>(res)).job;
+}
+
+export async function getScanJob(id: string): Promise<ScanJob> {
+  const res = await fetch(`/api/scan/${id}`, { cache: "no-store" });
+  return (await handle<{ job: ScanJob }>(res)).job;
 }
 
 export async function trackView(id: string): Promise<void> {

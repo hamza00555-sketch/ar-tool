@@ -66,6 +66,7 @@ Settings → Environment Variables.
 | `SUPABASE_SECRET_KEY` | Copy from [Project Settings → API Keys](https://supabase.com/dashboard/project/pkdlbrvalnjybxjsfmzd/settings/api-keys) → **service_role** (or a new **Secret key**) | **Server-only — never `NEXT_PUBLIC_`.** The MCP connector can't read this, which is why you paste it yourself. |
 | `SUPABASE_STORAGE_BUCKET` | `ar-assets` | Already set |
 | `NEXT_PUBLIC_APP_URL` | Your deployed domain, e.g. `https://holoform.vercel.app` | QR/share links use this. Must be HTTPS. Leave blank for local dev. |
+| `WORKER_TOKEN` | A long random secret (only for the **3D Scan** feature) | Shared with the self-hosted reconstruction worker. Optional — without it, scan capture works and jobs queue, but nothing processes them. See `worker/README.md`. |
 
 > **Publishable-key alternative.** If you'd rather use the publishable/anon key
 > (`SUPABASE_PUBLISHABLE_KEY`), the app supports it — but you must run migration
