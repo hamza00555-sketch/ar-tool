@@ -28,6 +28,12 @@ The GLB becomes a normal `model` experience in the app, so iOS Quick Look
 (model-viewer converts the static GLB to USDZ on-device), Android Scene Viewer,
 decorations, and audio all work on it automatically.
 
+## Quickest start: free GPU on Google Colab
+
+No server to own or pay for — run the worker in a Colab notebook (free CUDA
+GPU) using the COLMAP-only pipeline. See **[COLAB.md](./COLAB.md)**. Best for
+testing; use the Docker path below for always-on / heavy use.
+
 ## Requirements
 
 - An **NVIDIA GPU** with recent drivers + the NVIDIA Container Toolkit
@@ -81,7 +87,8 @@ Add `--once` to process a single job and exit (useful for testing).
 | `WORK_DIR` | | `./_scan_work` | Scratch dir for each job |
 | `COLMAP_BIN` | | `colmap` | COLMAP binary |
 | `OPENMVS_BIN_DIR` | | (PATH) | Dir with `DensifyPointCloud`, … |
-| `OBJ2GLTF_BIN` | | `obj2gltf` | obj2gltf binary |
+| `OBJ2GLTF_BIN` | | `obj2gltf` | obj2gltf binary (OpenMVS path) |
+| `FORCE_COLMAP_ONLY` | | — | Set to `1` to skip OpenMVS and use COLMAP's own dense+Poisson mesh (needs `pip install trimesh`). Auto-used when OpenMVS isn't found. |
 
 ## Testing the pipeline without a GPU
 

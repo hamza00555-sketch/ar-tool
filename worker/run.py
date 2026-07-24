@@ -127,26 +127,27 @@ def download_frames(frame_urls, images_dir: Path):
     return first
 
 
-def reconstruct(job, work: Path) -> Path:
-    """Run COLMAP + OpenMVS. Returns the path to a textured GLB."""
-    images = work / "images"
-    first_frame = download_frames(job["frameUrls"], images)
-    print(f"  downloaded {len(list(images.glob('*.jpg')))} frames", flush=True)
+def has_openmvs() -> bool:
+    """OpenMVS present? If not, we fall back to COLMAP's own dense+mesh path."""
+    if os.environ.get("FORCE_COLMAP_ONLY"):
+        return False
+    return shutil.which(openmvs("DensifyPointCloud")) is not None
 
+
+def colmap_sfm(images: Path, work: Path) -> Path:
+    """Shared front half: features -> match -> map -> undistort. Returns dense dir."""
     db = work / "database.db"
     sparse = work / "sparse"
     dense = work / "dense"
     sparse.mkdir(exist_ok=True)
     dense.mkdir(exist_ok=True)
 
-    # 1) COLMAP structure-from-motion
     run([COLMAP_BIN, "feature_extractor",
          "--database_path", db, "--image_path", images,
          "--ImageReader.single_camera", "1"])
     run([COLMAP_BIN, "exhaustive_matcher", "--database_path", db])
     run([COLMAP_BIN, "mapper",
          "--database_path", db, "--image_path", images, "--output_path", sparse])
-    # mapper writes sparse/0
     model0 = sparse / "0"
     if not model0.exists():
         raise RuntimeError("COLMAP could not reconstruct — too few overlapping frames "
@@ -154,8 +155,11 @@ def reconstruct(job, work: Path) -> Path:
     run([COLMAP_BIN, "image_undistorter",
          "--image_path", images, "--input_path", model0,
          "--output_path", dense, "--output_type", "COLMAP"])
+    return dense
 
-    # 2) OpenMVS dense mesh + texture
+
+def reconstruct_openmvs(dense: Path, work: Path) -> Path:
+    """Best quality: OpenMVS dense cloud + mesh + texture -> textured GLB."""
     run([openmvs("InterfaceCOLMAP"), "-i", dense, "-o", dense / "scene.mvs",
          "--image-folder", dense / "images"])
     run([openmvs("DensifyPointCloud"), dense / "scene.mvs"], cwd=dense)
@@ -163,18 +167,59 @@ def reconstruct(job, work: Path) -> Path:
          "--decimate", "0.5"], cwd=dense)
     run([openmvs("TextureMesh"), dense / "scene_dense_mesh.mvs",
          "--export-type", "obj", "-o", dense / "model.obj"], cwd=dense)
-
     obj = dense / "model.obj"
     if not obj.exists():
         raise RuntimeError("OpenMVS did not produce a textured mesh.")
-
-    # 3) OBJ (+ mtl + texture) -> GLB
     glb = work / "model.glb"
     run([OBJ2GLTF_BIN, "-i", obj, "-o", glb, "--binary"])
     if not glb.exists():
         raise RuntimeError("obj2gltf did not produce a GLB.")
+    return glb
 
-    # stash the first frame as a thumbnail
+
+def reconstruct_colmap_only(dense: Path, work: Path) -> Path:
+    """
+    Easier to install (no OpenMVS build — great for Colab/RunPod): COLMAP's
+    own CUDA dense stereo + Poisson mesh, then PLY (vertex colours) -> GLB via
+    trimesh. Needs a CUDA-enabled COLMAP for patch_match_stereo.
+    """
+    run([COLMAP_BIN, "patch_match_stereo",
+         "--workspace_path", dense, "--workspace_format", "COLMAP",
+         "--PatchMatchStereo.geom_consistency", "true"])
+    fused = dense / "fused.ply"
+    run([COLMAP_BIN, "stereo_fusion",
+         "--workspace_path", dense, "--workspace_format", "COLMAP",
+         "--input_type", "geometric", "--output_path", fused])
+    mesh = dense / "meshed-poisson.ply"
+    run([COLMAP_BIN, "poisson_mesher",
+         "--input_path", fused, "--output_path", mesh])
+    if not mesh.exists():
+        raise RuntimeError("COLMAP meshing produced no surface.")
+
+    # PLY (with vertex colours) -> GLB. trimesh keeps the colours as COLOR_0.
+    import trimesh  # lazy: only the COLMAP-only path needs it
+    glb = work / "model.glb"
+    scene = trimesh.load(str(mesh))
+    scene.export(str(glb))
+    if not glb.exists() or glb.stat().st_size == 0:
+        raise RuntimeError("PLY -> GLB conversion failed.")
+    return glb
+
+
+def reconstruct(job, work: Path) -> Path:
+    """Full pipeline. Returns the path to a GLB (textured or vertex-coloured)."""
+    images = work / "images"
+    first_frame = download_frames(job["frameUrls"], images)
+    print(f"  downloaded {len(list(images.glob('*.jpg')))} frames", flush=True)
+
+    dense = colmap_sfm(images, work)
+    if has_openmvs():
+        print("  reconstructing with OpenMVS (textured)", flush=True)
+        glb = reconstruct_openmvs(dense, work)
+    else:
+        print("  reconstructing with COLMAP dense+Poisson (vertex colours)", flush=True)
+        glb = reconstruct_colmap_only(dense, work)
+
     if first_frame:
         (work / "thumb.jpg").write_bytes(first_frame)
     return glb
